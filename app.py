@@ -79,6 +79,7 @@ else:
     coluna_vencimento = 'Vencto real'
     coluna_status = 'Status Atend'
     coluna_tipo = 'Tipo'
+    coluna_data_relatorio = 'Data_Relatorio_Consolidada'
     
     # Tratamento inicial dos números (Limpeza de R$, pontos de milhar e vírgulas)
     if coluna_valor in df_carteira_crua.columns:
@@ -90,6 +91,11 @@ else:
     # Tratamento preventivo da coluna de Status
     if coluna_status in df_carteira_crua.columns:
         df_carteira_crua[coluna_status] = pd.to_numeric(df_carteira_crua[coluna_status], errors='coerce').fillna(0).astype(int).astype(str)
+
+    # Captura a data do relatório para o título
+    data_relatorio_exibicao = "Data Indisponível"
+    if coluna_data_relatorio in df_carteira_crua.columns and not df_carteira_crua[coluna_data_relatorio].dropna().empty:
+        data_relatorio_exibicao = str(df_carteira_crua[coluna_data_relatorio].dropna().iloc[0]).strip()
 
     # -------------------------------------------------------------------------
     # MOTOR DE DATAS DIVIDIDO: Mês/Ano e Dia Exato
@@ -206,7 +212,9 @@ else:
     # =============================================================================
     # 5. CONSTRUÇÃO DA INTERFACE GRÁFICA ORGANIZADA (STREAMLIT)
     # =============================================================================
-    titulo_painel = f"Controle Inadimplência — {'VISÃO GERAL (MASTER)' if carteira_ativa == 'Geral' else f'Carteira {carteira_ativa}'}"
+    nome_carteira = 'VISÃO GERAL (MASTER)' if carteira_ativa == 'Geral' else f'Carteira {carteira_ativa}'
+    titulo_painel = f"Controle Inadimplência — {nome_carteira} | 📅 {data_relatorio_exibicao}"
+    
     st.markdown(f"# {titulo_painel}")
     st.write("Dados atualizados em tempo real diretamente do Google Sheets.")
     st.markdown("---")
@@ -274,7 +282,6 @@ else:
                 df_g2 = df_graficos_filtrados.groupby(coluna_grupo)[coluna_valor].sum().reset_index()
                 cores_pizza = ['#17a2b8', '#4CAF50', '#20c997', '#0e76a8']
                 
-                # Formata a legenda para mostrar Nome + Valor + %
                 total_g2 = df_g2[coluna_valor].sum() if not df_g2.empty else 1
                 df_g2['Legenda'] = df_g2.apply(lambda r: f"{r[coluna_grupo]} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g2)*100:.1f}%)", axis=1)
                 
@@ -286,7 +293,6 @@ else:
                     textinfo='percent', 
                     textfont=dict(size=12, color='white')
                 )
-                # LEGENDA NA PARTE INFERIOR E CENTRALIZADA
                 fig2.update_layout(
                     legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), 
                     margin=dict(l=10, r=10, t=20, b=100) 
@@ -302,7 +308,6 @@ else:
                 df_g3 = df_graficos_filtrados.groupby(coluna_range)[coluna_valor].sum().reset_index()
                 cores_pizza_3 = ['#0e76a8', '#17a2b8', '#4CAF50', '#20c997']
                 
-                # Formata a legenda para mostrar Nome + Valor + %
                 total_g3 = df_g3[coluna_valor].sum() if not df_g3.empty else 1
                 df_g3['Legenda'] = df_g3.apply(lambda r: f"{r[coluna_range]} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g3)*100:.1f}%)", axis=1)
                 
@@ -314,7 +319,6 @@ else:
                     textinfo='percent', 
                     textfont=dict(size=12, color='white')
                 )
-                # LEGENDA NA PARTE INFERIOR E CENTRALIZADA
                 fig3.update_layout(
                     legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), 
                     margin=dict(l=10, r=10, t=20, b=100)
