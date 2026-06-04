@@ -32,10 +32,17 @@ def carregar_dados_sheets(url: str) -> pd.DataFrame:
 df_carteiras = carregar_dados_sheets(URL_SHEETS)
 
 # =============================================================================
-# 3. SISTEMA DE SEGURANÇA VIA URL (QUERY PARAMETERS)
+# 3. SISTEMA DE SEGURANÇA VIA URL (TOKENS DE ACESSO)
 # =============================================================================
 parametros_url = st.query_params
-carteira_ativa = parametros_url.get("carteira", "Bloqueado")
+
+# Resgata o token digitado na URL (ex: ?token=abc123xyz)
+token_digitado = parametros_url.get("token", "Bloqueado")
+
+# Valida o token contra o cofre de segredos da nuvem (st.secrets)
+carteira_ativa = "Bloqueado"
+if "tokens" in st.secrets and token_digitado in st.secrets["tokens"]:
+    carteira_ativa = st.secrets["tokens"][token_digitado]
 
 # Tratamento para identificar se é a senha mestra "geral" ou número de carteira
 if str(carteira_ativa).lower() == "geral":
@@ -47,7 +54,7 @@ elif carteira_ativa != "Bloqueado":
 # 4. VALIDAÇÃO DA TRAVA E PROCESSAMENTO DE DADOS (PANDAS)
 # =============================================================================
 if carteira_ativa == "Bloqueado":
-    st.error("❌ Acesso Negado. Nenhuma credencial de gerência foi identificada nesta URL.")
+    st.error("❌ Acesso Negado. Nenhuma credencial de gerência válida foi identificada nesta URL.")
     st.info("💡 Acesse utilizando o link exclusivo enviado pelo seu administrador.")
 
 elif carteira_ativa != "Geral" and carteira_ativa not in df_carteiras['Carteira'].values:
@@ -267,6 +274,7 @@ else:
                 df_g2 = df_graficos_filtrados.groupby(coluna_grupo)[coluna_valor].sum().reset_index()
                 cores_pizza = ['#17a2b8', '#4CAF50', '#20c997', '#0e76a8']
                 
+                # Formata a legenda para mostrar Nome + Valor + %
                 total_g2 = df_g2[coluna_valor].sum() if not df_g2.empty else 1
                 df_g2['Legenda'] = df_g2.apply(lambda r: f"{r[coluna_grupo]} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g2)*100:.1f}%)", axis=1)
                 
@@ -278,6 +286,7 @@ else:
                     textinfo='percent', 
                     textfont=dict(size=12, color='white')
                 )
+                # LEGENDA NA PARTE INFERIOR E CENTRALIZADA
                 fig2.update_layout(
                     legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), 
                     margin=dict(l=10, r=10, t=20, b=100) 
@@ -293,6 +302,7 @@ else:
                 df_g3 = df_graficos_filtrados.groupby(coluna_range)[coluna_valor].sum().reset_index()
                 cores_pizza_3 = ['#0e76a8', '#17a2b8', '#4CAF50', '#20c997']
                 
+                # Formata a legenda para mostrar Nome + Valor + %
                 total_g3 = df_g3[coluna_valor].sum() if not df_g3.empty else 1
                 df_g3['Legenda'] = df_g3.apply(lambda r: f"{r[coluna_range]} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g3)*100:.1f}%)", axis=1)
                 
@@ -304,6 +314,7 @@ else:
                     textinfo='percent', 
                     textfont=dict(size=12, color='white')
                 )
+                # LEGENDA NA PARTE INFERIOR E CENTRALIZADA
                 fig3.update_layout(
                     legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), 
                     margin=dict(l=10, r=10, t=20, b=100)
@@ -369,7 +380,7 @@ else:
                 st.info("Coluna Status Atend não encontrada.")
 
     st.markdown("---")
-    st.markdown("###  Tabela de Títulos Resumido")
+    st.markdown("### 📋 Tabela de Títulos Resumido")
     
     colunas_finais = [c for c in df_filtrado.columns if c not in ['Mes_Filtro', 'Data_Exata', 'Mes_Grafico']]
     st.dataframe(df_filtrado[colunas_finais], use_container_width=True, hide_index=True)
