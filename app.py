@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # URL direta da sua planilha configurada para exportação automática em CSV
-URL_SHEETS = "https://docs.google.com/spreadsheets/d/1qXS6bx1NMi0dC2o2FudKdg-uKiaGjXcS9GRI28m802U/export?format=csv"
+URL_SHEETS = st.secrets["URL_PLANILHA"]
 
 # =============================================================================
 # 2. CARREGAMENTO E CACHE DE DADOS (PANDAS)
