@@ -35,11 +35,8 @@ df_carteiras = carregar_dados_sheets(URL_SHEETS)
 # 3. SISTEMA DE SEGURANÇA VIA URL (TOKENS DE ACESSO)
 # =============================================================================
 parametros_url = st.query_params
-
-# Resgata o token digitado na URL
 token_digitado = parametros_url.get("token", "Bloqueado")
 
-# Valida o token contra o cofre de segredos da nuvem (st.secrets)
 carteira_ativa = "Bloqueado"
 if "tokens" in st.secrets and token_digitado in st.secrets["tokens"]:
     carteira_ativa = st.secrets["tokens"][token_digitado]
@@ -87,21 +84,23 @@ else:
     if coluna_status in df_carteira_crua.columns:
         df_carteira_crua[coluna_status] = pd.to_numeric(df_carteira_crua[coluna_status], errors='coerce').fillna(0).astype(int).astype(str)
 
-    data_relatorio_exibicao = "Data Indisponível"
-    if coluna_data_relatorio in df_carteira_crua.columns and not df_carteira_crua[coluna_data_relatorio].dropna().empty:
-        # Mostramos no título a última data disponível
-        data_relatorio_exibicao = str(df_carteira_crua[coluna_data_relatorio].dropna().iloc[0]).strip()
+    # NOVO: Tratamento Master da Data do Relatório
+    if coluna_data_relatorio in df_carteira_crua.columns:
+        df_carteira_crua['Data_Analise_dt'] = pd.to_datetime(df_carteira_crua[coluna_data_relatorio], errors='coerce', dayfirst=True)
+        opcoes_data_relatorio = df_carteira_crua['Data_Analise_dt'].dropna().sort_values(ascending=False).dt.strftime('%d/%m/%Y').unique().tolist()
+    else:
+        df_carteira_crua['Data_Analise_dt'] = pd.NaT
+        opcoes_data_relatorio = []
 
+    # Tratamento da Data de Vencimento
     if coluna_vencimento in df_carteira_crua.columns:
         datas_convertidas = pd.to_datetime(df_carteira_crua[coluna_vencimento], errors='coerce', dayfirst=True)
-        
         df_carteira_crua['Mes_Filtro'] = datas_convertidas.dt.strftime('%m/%Y').fillna('Sem Data')
         df_carteira_crua['Data_Exata'] = datas_convertidas.dt.strftime('%d/%m/%Y').fillna('Sem Data')
         df_carteira_crua['Mes_Grafico'] = datas_convertidas.dt.strftime('%Y-%m').fillna('Sem Data')
         
         opcoes_mes = datas_convertidas.dropna().sort_values().dt.strftime('%m/%Y').unique().tolist()
         opcoes_dia = datas_convertidas.dropna().sort_values().dt.strftime('%d/%m/%Y').unique().tolist()
-        
         if datas_convertidas.isna().any():
             opcoes_mes.append('Sem Data')
             opcoes_dia.append('Sem Data')
@@ -112,12 +111,21 @@ else:
     # -------------------------------------------------------------------------
     # CONSTRUÇÃO DOS FILTROS INTERATIVOS GERAIS
     # -------------------------------------------------------------------------
-    st.sidebar.markdown("## 🔍 Filtros Gerais")
+    st.sidebar.markdown("## 📅 Retrato da Base")
+    if opcoes_data_relatorio:
+        # Pega a data mais recente por padrão
+        sel_data_relatorio_str = st.sidebar.selectbox("Data do Relatório:", options=opcoes_data_relatorio)
+        sel_data_relatorio_dt = pd.to_datetime(sel_data_relatorio_str, format='%d/%m/%Y')
+    else:
+        sel_data_relatorio_str = "Sem Data"
+        sel_data_relatorio_dt = None
+
     st.sidebar.markdown("---")
+    st.sidebar.markdown("## 🔍 Filtros de Segmentação")
 
     if carteira_ativa == "Geral" and coluna_carteira in df_carteira_crua.columns:
         opcoes_carteira = sorted([str(x) for x in df_carteira_crua[coluna_carteira].dropna().unique()])
-        sel_carteira = st.sidebar.multiselect("⭐ CARTEIRA (Apenas Master):", options=opcoes_carteira, placeholder="Todas")
+        sel_carteira = st.sidebar.multiselect("⭐ CARTEIRA (Master):", options=opcoes_carteira, placeholder="Todas")
         st.sidebar.markdown("---")
     else: sel_carteira = []
 
@@ -138,7 +146,7 @@ else:
 
     if coluna_grupo in df_carteira_crua.columns:
         opcoes_grupo = sorted([str(x) for x in df_carteira_crua[coluna_grupo].dropna().unique()])
-        sel_grupo = st.sidebar.multiselect("4. GRUPO ATENDIMENTO:", options=opcoes_grupo, placeholder="Todos")
+        sel_grupo = st.sidebar.multiselect("4. GRUPO ATEND:", options=opcoes_grupo, placeholder="Todos")
     else: sel_grupo = []
 
     if coluna_range in df_carteira_crua.columns:
@@ -150,7 +158,7 @@ else:
     sel_dia = st.sidebar.multiselect("7. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
 
     # -------------------------------------------------------------------------
-    # APLICANDO FILTROS
+    # APLICANDO FILTROS GERAIS (Ignorando a Data do Relatório por enquanto)
     # -------------------------------------------------------------------------
     df_filtrado = df_carteira_crua.copy()
     if sel_carteira: df_filtrado = df_filtrado[df_filtrado[coluna_carteira].astype(str).isin(sel_carteira)]
@@ -163,24 +171,22 @@ else:
     if sel_dia:      df_filtrado = df_filtrado[df_filtrado['Data_Exata'].astype(str).isin(sel_dia)]
 
     # -------------------------------------------------------------------------
-    # MOTOR DE SNAPSHOTS (MÚLTIPLAS DATAS) E DELTAS DE KPI
+    # MOTOR DE SNAPSHOTS E DELTAS DE KPI (MÁQUINA DO TEMPO)
     # -------------------------------------------------------------------------
-    if coluna_data_relatorio in df_filtrado.columns:
-        df_filtrado['Data_Analise_dt'] = pd.to_datetime(df_filtrado[coluna_data_relatorio], errors='coerce', dayfirst=True)
-        datas_unicas = df_filtrado['Data_Analise_dt'].dropna().sort_values().unique()
-    else:
-        datas_unicas = []
+    df_atual = pd.DataFrame(columns=df_filtrado.columns)
+    df_anterior = pd.DataFrame(columns=df_filtrado.columns)
 
-    # Identifica o Hoje e o Ontem da base de dados
-    if len(datas_unicas) >= 2:
-        df_atual = df_filtrado[df_filtrado['Data_Analise_dt'] == datas_unicas[-1]].copy()
-        df_anterior = df_filtrado[df_filtrado['Data_Analise_dt'] == datas_unicas[-2]].copy()
-    elif len(datas_unicas) == 1:
-        df_atual = df_filtrado.copy()
-        df_anterior = pd.DataFrame(columns=df_filtrado.columns)
+    if sel_data_relatorio_dt is not None:
+        datas_unicas = df_carteira_crua['Data_Analise_dt'].dropna().sort_values().unique()
+        df_atual = df_filtrado[df_filtrado['Data_Analise_dt'] == sel_data_relatorio_dt].copy()
+        
+        # Acha a data imediatamente anterior à selecionada para a comparação
+        datas_anteriores = [d for d in datas_unicas if d < sel_data_relatorio_dt]
+        if datas_anteriores:
+            data_anterior_dt = datas_anteriores[-1]
+            df_anterior = df_filtrado[df_filtrado['Data_Analise_dt'] == data_anterior_dt].copy()
     else:
         df_atual = df_filtrado.copy()
-        df_anterior = pd.DataFrame(columns=df_filtrado.columns)
 
     def calcular_kpis(df_alvo):
         if df_alvo.empty: return 0.0, 0, 0, 0.0, 0.0
@@ -203,29 +209,25 @@ else:
         if anterior == 0 or pd.isna(anterior): return None
         return f"{((atual - anterior) / anterior) * 100:+.1f}%"
 
-    # DAQUI PARA BAIXO, OS GRÁFICOS USAM APENAS OS DADOS DA DATA MAIS RECENTE
-    # Para não duplicar os valores acumulados!
-    df_filtrado = df_atual.copy()
+    # DAQUI PARA BAIXO, OS GRÁFICOS USAM APENAS OS DADOS DA DATA ESCOLHIDA
+    df_filtrado_final = df_atual.copy()
 
-    if coluna_tipo in df_filtrado.columns:
-        df_filtrado[coluna_tipo] = df_filtrado[coluna_tipo].astype(str).str.strip().str.upper()
-        df_graficos_filtrados = df_filtrado[df_filtrado[coluna_tipo].isin(['NF', 'BOL'])].copy()
+    if coluna_tipo in df_filtrado_final.columns:
+        df_filtrado_final[coluna_tipo] = df_filtrado_final[coluna_tipo].astype(str).str.strip().str.upper()
+        df_graficos_filtrados = df_filtrado_final[df_filtrado_final[coluna_tipo].isin(['NF', 'BOL'])].copy()
     else:
-        df_graficos_filtrados = df_filtrado.copy()
+        df_graficos_filtrados = df_filtrado_final.copy()
 
     # =============================================================================
     # 5. CONSTRUÇÃO DA INTERFACE GRÁFICA ORGANIZADA
     # =============================================================================
     nome_carteira = 'VISÃO GERAL (MASTER)' if carteira_ativa == 'Geral' else f'Carteira {carteira_ativa}'
-    titulo_painel = f"Controle Inadimplência — {nome_carteira} | 📅 {data_relatorio_exibicao}"
+    titulo_painel = f"Controle Inadimplência — {nome_carteira} | 📅 {sel_data_relatorio_str}"
     
     st.markdown(f"# {titulo_painel}")
     st.write("Dados atualizados em tempo real diretamente do Google Sheets.")
     st.markdown("---")
     
-    # -------------------------------------------------------------------------
-    # Renderização dos KPIs com Deltas Coloridos Nativo do Streamlit
-    # -------------------------------------------------------------------------
     st.markdown("### 📈 Indicadores Gerais")
     g1, g2, g3 = st.columns(3)
     with g1:
@@ -256,10 +258,10 @@ else:
     # -------------------------------------------------------------------------
     # LINHA 1 DE GRÁFICOS: CLIENTES
     # -------------------------------------------------------------------------
-    if coluna_cliente in df_filtrado.columns:
+    if coluna_cliente in df_filtrado_final.columns:
         st.markdown("**CLIENTES**")
         with st.container(height=600, border=True):
-            df_g1 = df_filtrado.groupby(coluna_cliente)[coluna_valor].sum().reset_index()
+            df_g1 = df_filtrado_final.groupby(coluna_cliente)[coluna_valor].sum().reset_index()
             df_g1 = df_g1.sort_values(by=coluna_valor, ascending=True)
             
             altura_interna_g1 = max(550, len(df_g1) * 35)
@@ -277,7 +279,7 @@ else:
             st.plotly_chart(fig1, use_container_width=True)
 
     # -------------------------------------------------------------------------
-    # LINHA 2 DE GRÁFICOS: PIZZAS LADO A LADO COM LEGENDA INFERIOR
+    # LINHA 2 DE GRÁFICOS: PIZZAS LADO A LADO
     # -------------------------------------------------------------------------
     col_pizza1, col_pizza2 = st.columns(2)
     
@@ -371,10 +373,8 @@ else:
                 fig5.update_traces(texttemplate='R$ %{text:,.2f}', textposition='auto', cliponaxis=False, textfont=dict(color='white', size=11))
                 fig5.update_layout(coloraxis_showscale=False, margin=dict(l=100, r=40, t=10, b=10)) 
                 st.plotly_chart(fig5, use_container_width=True)
-            else:
-                st.info("Coluna Status Atend não encontrada.")
 
     st.markdown("---")
     st.markdown("### 📋 Tabela de Títulos Resumido")
-    colunas_finais = [c for c in df_filtrado.columns if c not in ['Mes_Filtro', 'Data_Exata', 'Mes_Grafico', 'Data_Analise_dt']]
-    st.dataframe(df_filtrado[colunas_finais], use_container_width=True, hide_index=True)
+    colunas_finais = [c for c in df_filtrado_final.columns if c not in ['Mes_Filtro', 'Data_Exata', 'Mes_Grafico', 'Data_Analise_dt']]
+    st.dataframe(df_filtrado_final[colunas_finais], use_container_width=True, hide_index=True)
