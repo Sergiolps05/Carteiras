@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# URL direta da sua planilha configurada para exportação automática em CSV
+# Puxando o link blindado do cofre do Streamlit (Segurança Máxima)
 URL_SHEETS = st.secrets["URL_PLANILHA"]
 
 # =============================================================================
@@ -37,7 +37,10 @@ df_carteiras = carregar_dados_sheets(URL_SHEETS)
 parametros_url = st.query_params
 carteira_ativa = parametros_url.get("carteira", "Bloqueado")
 
-if carteira_ativa != "Bloqueado":
+# Tratamento para identificar se é a senha mestra "geral" ou número de carteira
+if str(carteira_ativa).lower() == "geral":
+    carteira_ativa = "Geral"
+elif carteira_ativa != "Bloqueado":
     carteira_ativa = str(carteira_ativa).strip().zfill(2)
 
 # =============================================================================
@@ -47,15 +50,19 @@ if carteira_ativa == "Bloqueado":
     st.error("❌ Acesso Negado. Nenhuma credencial de gerência foi identificada nesta URL.")
     st.info("💡 Acesse utilizando o link exclusivo enviado pelo seu administrador.")
 
-elif carteira_ativa not in df_carteiras['Carteira'].values:
+elif carteira_ativa != "Geral" and carteira_ativa not in df_carteiras['Carteira'].values:
     st.warning(f"⚠️ A carteira de código '{carteira_ativa}' não foi localizada na base de dados.")
     st.info("Verifique se o código enviado na URL está correto.")
 
 else:
-    # FILTRAGEM VIA PANDAS: Isola os dados cruos da carteira ativa
-    df_carteira_crua = df_carteiras[df_carteiras['Carteira'] == carteira_ativa].copy()
+    # FILTRAGEM VIA PANDAS: Libera tudo se for "Geral", isola se for número
+    if carteira_ativa == "Geral":
+        df_carteira_crua = df_carteiras.copy()
+    else:
+        df_carteira_crua = df_carteiras[df_carteiras['Carteira'] == carteira_ativa].copy()
     
     # Mapeamento dos nomes exatos das colunas
+    coluna_carteira = 'Carteira'
     coluna_valor = 'Valor Liq Calc python'
     coluna_cobranca = 'COBRANÇA'
     coluna_cliente = 'N Fantasia'
@@ -83,12 +90,10 @@ else:
     if coluna_vencimento in df_carteira_crua.columns:
         datas_convertidas = pd.to_datetime(df_carteira_crua[coluna_vencimento], errors='coerce', dayfirst=True)
         
-        # Colunas auxiliares para os dois filtros
         df_carteira_crua['Mes_Filtro'] = datas_convertidas.dt.strftime('%m/%Y').fillna('Sem Data')
         df_carteira_crua['Data_Exata'] = datas_convertidas.dt.strftime('%d/%m/%Y').fillna('Sem Data')
         df_carteira_crua['Mes_Grafico'] = datas_convertidas.dt.strftime('%Y-%m').fillna('Sem Data')
         
-        # Ordenação cronológica correta para as listas suspensas
         opcoes_mes = datas_convertidas.dropna().sort_values().dt.strftime('%m/%Y').unique().tolist()
         opcoes_dia = datas_convertidas.dropna().sort_values().dt.strftime('%d/%m/%Y').unique().tolist()
         
@@ -103,10 +108,18 @@ else:
         opcoes_dia = ['Sem Data']
 
     # -------------------------------------------------------------------------
-    # CONSTRUÇÃO DOS 7 FILTROS INTERATIVOS GERAIS (SIDEBAR)
+    # CONSTRUÇÃO DOS FILTROS INTERATIVOS GERAIS (SIDEBAR)
     # -------------------------------------------------------------------------
-    st.sidebar.markdown("## Filtros Gerais")
+    st.sidebar.markdown("## 🔍 Filtros Gerais")
     st.sidebar.markdown("---")
+
+    # NOVO: Filtro de Carteiras EXCLUSIVO para a visão Master
+    if carteira_ativa == "Geral" and coluna_carteira in df_carteira_crua.columns:
+        opcoes_carteira = sorted([str(x) for x in df_carteira_crua[coluna_carteira].dropna().unique()])
+        sel_carteira = st.sidebar.multiselect("⭐ CARTEIRA (Apenas Master):", options=opcoes_carteira, placeholder="Todas")
+        st.sidebar.markdown("---")
+    else:
+        sel_carteira = []
 
     if coluna_cobranca in df_carteira_crua.columns:
         opcoes_cobranca = sorted([str(x) for x in df_carteira_crua[coluna_cobranca].dropna().unique()])
@@ -116,7 +129,7 @@ else:
 
     if coluna_cliente in df_carteira_crua.columns:
         opcoes_cliente = sorted([str(x) for x in df_carteira_crua[coluna_cliente].dropna().unique()])
-        sel_cliente = st.sidebar.multiselect("2.NOME CLIENTE:", options=opcoes_cliente, placeholder="Todos")
+        sel_cliente = st.sidebar.multiselect("2. CLIENTE:", options=opcoes_cliente, placeholder="Todos")
     else:
         sel_cliente = []
 
@@ -138,7 +151,6 @@ else:
     else:
         sel_range = []
 
-    # Os dois filtros de tempo separados
     sel_mes = st.sidebar.multiselect("6. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
     sel_dia = st.sidebar.multiselect("7. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
 
@@ -147,6 +159,7 @@ else:
     # -------------------------------------------------------------------------
     df_filtrado = df_carteira_crua.copy()
     
+    if sel_carteira: df_filtrado = df_filtrado[df_filtrado[coluna_carteira].astype(str).isin(sel_carteira)]
     if sel_cobranca: df_filtrado = df_filtrado[df_filtrado[coluna_cobranca].astype(str).isin(sel_cobranca)]
     if sel_cliente:  df_filtrado = df_filtrado[df_filtrado[coluna_cliente].astype(str).isin(sel_cliente)]
     if sel_status:   df_filtrado = df_filtrado[df_filtrado[coluna_status].astype(str).isin(sel_status)]
@@ -186,12 +199,13 @@ else:
     # =============================================================================
     # 5. CONSTRUÇÃO DA INTERFACE GRÁFICA ORGANIZADA (STREAMLIT)
     # =============================================================================
-    st.markdown(f"# Controle Inadimplencia — Carteira `{carteira_ativa}`")
+    titulo_painel = f"Controle Inadimplência — {'VISÃO GERAL (MASTER)' if carteira_ativa == 'Geral' else f'Carteira {carteira_ativa}'}"
+    st.markdown(f"# {titulo_painel}")
     st.write("Dados atualizados em tempo real diretamente do Google Sheets.")
     st.markdown("---")
     
     # Renderização dos KPIs
-    st.markdown("###  Indicadores Gerais")
+    st.markdown("### 📈 Indicadores Gerais")
     g1, g2, g3 = st.columns(3)
     with g1:
         with st.container(border=True):
@@ -217,7 +231,6 @@ else:
             st.markdown(f"## R$ {valor_incobravel:,.2f}")
             
     st.markdown("---")
-    #st.markdown("### 📊 Visões e Gráficos Analíticos")
 
     # -------------------------------------------------------------------------
     # LINHA 1 DE GRÁFICOS: CLIENTES (Largura Total Superior)
@@ -249,12 +262,11 @@ else:
     
     with col_pizza1:
         st.markdown("**INADIMPLÊNCIA POR GRUPO**")
-        with st.container(height=480, border=True): # Altura extra para a legenda em baixo
+        with st.container(height=480, border=True): 
             if coluna_grupo in df_graficos_filtrados.columns:
                 df_g2 = df_graficos_filtrados.groupby(coluna_grupo)[coluna_valor].sum().reset_index()
                 cores_pizza = ['#17a2b8', '#4CAF50', '#20c997', '#0e76a8']
                 
-                # Formata a legenda para mostrar Nome + Valor + %
                 total_g2 = df_g2[coluna_valor].sum() if not df_g2.empty else 1
                 df_g2['Legenda'] = df_g2.apply(lambda r: f"{r[coluna_grupo]} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g2)*100:.1f}%)", axis=1)
                 
@@ -266,10 +278,9 @@ else:
                     textinfo='percent', 
                     textfont=dict(size=12, color='white')
                 )
-                # LEGENDA NA PARTE INFERIOR E CENTRALIZADA
                 fig2.update_layout(
                     legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), 
-                    margin=dict(l=10, r=10, t=20, b=100) # Margem inferior 'b' maior para caber a legenda
+                    margin=dict(l=10, r=10, t=20, b=100) 
                 )
                 st.plotly_chart(fig2, use_container_width=True)
             else:
@@ -282,7 +293,6 @@ else:
                 df_g3 = df_graficos_filtrados.groupby(coluna_range)[coluna_valor].sum().reset_index()
                 cores_pizza_3 = ['#0e76a8', '#17a2b8', '#4CAF50', '#20c997']
                 
-                # Formata a legenda para mostrar Nome + Valor + %
                 total_g3 = df_g3[coluna_valor].sum() if not df_g3.empty else 1
                 df_g3['Legenda'] = df_g3.apply(lambda r: f"{r[coluna_range]} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g3)*100:.1f}%)", axis=1)
                 
@@ -294,7 +304,6 @@ else:
                     textinfo='percent', 
                     textfont=dict(size=12, color='white')
                 )
-                # LEGENDA NA PARTE INFERIOR E CENTRALIZADA
                 fig3.update_layout(
                     legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5), 
                     margin=dict(l=10, r=10, t=20, b=100)
