@@ -381,7 +381,26 @@ with col_baixo2:
             fig5.update_layout(coloraxis_showscale=False, margin=dict(l=100, r=40, t=10, b=10)) 
             st.plotly_chart(fig5, use_container_width=True)
 
+
 st.markdown("---")
 st.markdown("### 📋 Tabela de Títulos Resumida")
-colunas_finais = [c for c in df_filtrado_final.columns if c not in ['Mes_Filtro', 'Data_Exata', 'Mes_Grafico', 'Data_Analise_dt']]
-st.dataframe(df_filtrado_final[colunas_finais], use_container_width=True, hide_index=True)
+
+# 1. Colunas que vão aparecer
+colunas_desejadas = [
+    'Carteira',
+    'N Fantasia',
+    'ID_Único',
+    'Vencto real',
+    'Valor Liq Calc python',
+    'COBRANÇA',
+    'Status Atend',
+    'Grupo Atendimento',
+    'Range_Acompanhamento',
+    'Tipo'
+]
+
+# 2. O sistema verifica quais dessas colunas realmente existem na base para não dar erro
+colunas_para_exibir = [col for col in colunas_desejadas if col in df_filtrado_final.columns]
+
+# 3. Exibe a tabela apenas com as colunas selecionadas
+st.dataframe(df_filtrado_final[colunas_para_exibir], use_container_width=True, hide_index=True)
