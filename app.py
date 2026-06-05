@@ -387,16 +387,19 @@ st.markdown("### 📋 Tabela de Títulos Resumida")
 
 # 1. Colunas que vão aparecer
 colunas_desejadas = [
-    'Carteira',
-    'N Fantasia',
-    'ID_Único',
-    'Vencto real',
+    'No. Titulo',
+    'Tipo',
+    'CNPJ/CPF',
     'Valor Liq Calc python',
+    'N Fantasia',
+    'DT Emissao',
+    'Vencto real',
+    'Carteira',
     'COBRANÇA',
     'Status Atend',
     'Grupo Atendimento',
     'Range_Acompanhamento',
-    'Tipo'
+    
 ]
 
 # 2. O sistema verifica quais dessas colunas realmente existem na base para não dar erro
