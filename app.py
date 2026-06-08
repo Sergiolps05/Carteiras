@@ -336,7 +336,7 @@ with col_pizza2:
 col_baixo1, col_baixo2 = st.columns(2)
 
 with col_baixo1:
-    st.markdown("**Valor Vencido por Mês**")
+    st.markdown("**Valor Vencido por Mês (TOTAL)**")
     with st.container(height=450, border=True):
         if 'Mes_Grafico' in df_graficos_filtrados.columns:
             try:
@@ -382,6 +382,38 @@ with col_baixo2:
             st.plotly_chart(fig5, use_container_width=True)
 
 
+# -------------------------------------------------------------------------
+# LINHA 4 DE GRÁFICOS: MÉDIA DE INADIMPLÊNCIA POR MÊS (Vertical)
+# -------------------------------------------------------------------------
+st.markdown("**Média de Inadimplência por Mês**")
+with st.container(height=450, border=True):
+    if 'Mes_Grafico' in df_graficos_filtrados.columns:
+        try:
+            # Agrupa calculando a MÉDIA (.mean) em vez da soma
+            df_g_media = df_graficos_filtrados.groupby('Mes_Grafico')[coluna_valor].mean().reset_index()
+            df_g_media = df_g_media.sort_values(by='Mes_Grafico', ascending=True)
+            df_g_media['Mes_Exibicao'] = df_g_media['Mes_Grafico'].apply(lambda x: f"{x[-2:]}/{x[:4]}" if x != 'Sem Data' else x)
+            
+            # Gráfico Vertical (orientation='v')
+            fig_media = px.bar(
+                df_g_media, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
+                template="plotly_dark", height=400, text=coluna_valor,
+                color_discrete_sequence=['#17a2b8'] # Azul para diferenciar do Total que é Verde
+            )
+            
+            # Formatação dos eixos (esconde os números laterais e põe no topo da barra)
+            fig_media.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_g_media['Mes_Exibicao'])
+            fig_media.update_yaxes(showticklabels=False, title=None, showgrid=False)
+            
+            # Coloca o valor a flutuar por cima da coluna (textposition='outside')
+            fig_media.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
+            fig_media.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+            
+            st.plotly_chart(fig_media, use_container_width=True)
+        except: 
+            st.warning("⚠️ Erro ao gerar o gráfico de média mensal.")
+
+
 st.markdown("---")
 st.markdown("### 📋 Tabela de Títulos Resumida")
 
@@ -399,7 +431,6 @@ colunas_desejadas = [
     'Status Atend',
     'Grupo Atendimento',
     'Range_Acompanhamento',
-    
 ]
 
 # 2. O sistema verifica quais dessas colunas realmente existem na base para não dar erro
