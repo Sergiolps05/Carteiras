@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-
+import io
 # =============================================================================
 # 1. CONFIGURAÇÕES DE LAYOUT DA PÁGINA (STREAMLIT)
 # =============================================================================
@@ -474,3 +474,22 @@ colunas_para_exibir = [col for col in colunas_desejadas if col in df_filtrado_fi
 
 # 3. Exibe a tabela apenas com as colunas selecionadas
 st.dataframe(df_filtrado_final[colunas_para_exibir], use_container_width=True, hide_index=True)
+
+# =============================================================================
+# EXPORTAÇÃO PARA EXCEL (.XLSX)
+# =============================================================================
+try:
+    # Cria um arquivo Excel virtual na memória
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df_filtrado_final[colunas_para_exibir].to_excel(writer, index=False, sheet_name='Inadimplencia')
+    
+    # Renderiza o botão de download com o arquivo pronto
+    st.download_button(
+        label="📥 Baixar Tabela em Excel (.xlsx)",
+        data=buffer.getvalue(),
+        file_name=f"Relatorio_Inadimplencia_Carteira_{carteira_ativa}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+except Exception as e:
+    st.warning("Para habilitar o download em Excel, adicione 'openpyxl' no seu arquivo requirements.txt")
