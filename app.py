@@ -93,6 +93,7 @@ coluna_vencimento = 'Vencto real'
 coluna_status = 'Status Atend'
 coluna_tipo = 'Tipo'
 coluna_data_relatorio = 'Data_Relatorio_Consolidada'
+coluna_cnpj = 'CNPJ/CPF'
 
 # Tratamento inicial dos números
 if coluna_valor in df_carteira_crua.columns:
@@ -157,6 +158,11 @@ if coluna_cliente in df_carteira_crua.columns:
     opcoes_cliente = sorted([str(x) for x in df_carteira_crua[coluna_cliente].dropna().unique()])
     sel_cliente = st.sidebar.multiselect("2. CLIENTE:", options=opcoes_cliente, placeholder="Todos")
 else: sel_cliente = []
+
+if coluna_cnpj in df_carteira_crua.columns:
+    opcoes_cnpj = sorted([str(x) for x in df_carteira_crua[coluna_cnpj].dropna().unique()])
+    sel_cnpj = st.sidebar.multiselect("🔢 CNPJ/CPF:", options=opcoes_cnpj, placeholder="Todos")
+else: sel_cnpj = []
 
 if coluna_status in df_carteira_crua.columns:
     opcoes_status = sorted([str(x) for x in df_carteira_crua[coluna_status].unique()], key=int)
