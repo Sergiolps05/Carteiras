@@ -6,7 +6,7 @@ import plotly.express as px
 # 1. CONFIGURAÇÕES DE LAYOUT DA PÁGINA (STREAMLIT)
 # =============================================================================
 st.set_page_config(
-    page_title="Dashboard Seguro - Carteiras",
+    page_title="Dashboard - Carteiras",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded" 
@@ -106,6 +106,7 @@ if coluna_status in df_carteira_crua.columns:
 # Tratamento da Data do Relatório (Snapshots)
 if coluna_data_relatorio in df_carteira_crua.columns:
     df_carteira_crua['Data_Analise_dt'] = pd.to_datetime(df_carteira_crua[coluna_data_relatorio], errors='coerce', dayfirst=True)
+    
     opcoes_data_relatorio = df_carteira_crua['Data_Analise_dt'].dropna().sort_values(ascending=False).dt.strftime('%d/%m/%Y').unique().tolist()
 else:
     df_carteira_crua['Data_Analise_dt'] = pd.NaT
@@ -241,7 +242,7 @@ nome_carteira = 'VISÃO GERAL (MASTER)' if carteira_ativa == 'Geral' else f'Cart
 titulo_painel = f"Controlo de Inadimplência — {nome_carteira} | 📅 {sel_data_relatorio_str}"
 
 st.markdown(f"# {titulo_painel}")
-st.write("Dados atualizados em tempo real diretamente do Google Sheets.")
+st.write("Dados atualizados diariamente .")
 st.markdown("---")
 
 st.markdown("### 📈 Indicadores Gerais")
