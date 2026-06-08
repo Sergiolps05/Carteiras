@@ -11,6 +11,20 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded" 
 )
+# Esconde o botão do GitHub, o menu superior e o rodapé do Streamlit
+ocultar_elementos_padrao = """
+    <style>
+    /* Esconde o botão Deploy/GitHub e os três pontinhos */
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    
+    /* Esconde o rodapé 'Made with Streamlit' */
+    footer {visibility: hidden !important;}
+    
+    /* Remove a linha de decoração no topo da página */
+    header {visibility: hidden !important;}
+    </style>
+"""
+st.markdown(ocultar_elementos_padrao, unsafe_allow_html=True)
 
 # Puxando o link blindado do cofre do Streamlit (Segurança Máxima)
 URL_SHEETS = st.secrets["URL_PLANILHA"]
