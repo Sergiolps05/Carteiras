@@ -189,6 +189,7 @@ df_filtrado = df_carteira_crua.copy()
 if sel_carteira: df_filtrado = df_filtrado[df_filtrado[coluna_carteira].astype(str).isin(sel_carteira)]
 if sel_cobranca: df_filtrado = df_filtrado[df_filtrado[coluna_cobranca].astype(str).isin(sel_cobranca)]
 if sel_cliente:  df_filtrado = df_filtrado[df_filtrado[coluna_cliente].astype(str).isin(sel_cliente)]
+if sel_cnpj:     df_filtrado = df_filtrado[df_filtrado[coluna_cnpj].astype(str).isin(sel_cnpj)] # <--- ADICIONE AQUI
 if sel_status:   df_filtrado = df_filtrado[df_filtrado[coluna_status].astype(str).isin(sel_status)]
 if sel_grupo:    df_filtrado = df_filtrado[df_filtrado[coluna_grupo].astype(str).isin(sel_grupo)]
 if sel_range:    df_filtrado = df_filtrado[df_filtrado[coluna_range].astype(str).isin(sel_range)]
