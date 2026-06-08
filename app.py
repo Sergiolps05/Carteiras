@@ -161,26 +161,26 @@ else: sel_cliente = []
 
 if coluna_cnpj in df_carteira_crua.columns:
     opcoes_cnpj = sorted([str(x) for x in df_carteira_crua[coluna_cnpj].dropna().unique()])
-    sel_cnpj = st.sidebar.multiselect("🔢 CNPJ/CPF:", options=opcoes_cnpj, placeholder="Todos")
+    sel_cnpj = st.sidebar.multiselect("3. CNPJ/CPF:", options=opcoes_cnpj, placeholder="Todos")
 else: sel_cnpj = []
 
 if coluna_status in df_carteira_crua.columns:
     opcoes_status = sorted([str(x) for x in df_carteira_crua[coluna_status].unique()], key=int)
-    sel_status = st.sidebar.multiselect("3. STATUS ATEND:", options=opcoes_status, placeholder="Todos")
+    sel_status = st.sidebar.multiselect("4. STATUS ATEND:", options=opcoes_status, placeholder="Todos")
 else: sel_status = []
 
 if coluna_grupo in df_carteira_crua.columns:
     opcoes_grupo = sorted([str(x) for x in df_carteira_crua[coluna_grupo].dropna().unique()])
-    sel_grupo = st.sidebar.multiselect("4. GRUPO ATEND:", options=opcoes_grupo, placeholder="Todos")
+    sel_grupo = st.sidebar.multiselect("5. GRUPO ATEND:", options=opcoes_grupo, placeholder="Todos")
 else: sel_grupo = []
 
 if coluna_range in df_carteira_crua.columns:
     opcoes_range = sorted([str(x) for x in df_carteira_crua[coluna_range].dropna().unique()])
-    sel_range = st.sidebar.multiselect("5. RANGE ACOMPANHAMENTO:", options=opcoes_range, placeholder="Todos")
+    sel_range = st.sidebar.multiselect("6. RANGE ACOMPANHAMENTO:", options=opcoes_range, placeholder="Todos")
 else: sel_range = []
 
-sel_mes = st.sidebar.multiselect("6. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
-sel_dia = st.sidebar.multiselect("7. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
+sel_mes = st.sidebar.multiselect("7. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
+sel_dia = st.sidebar.multiselect("8. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
 
 # -------------------------------------------------------------------------
 # APLICANDO FILTROS GERAIS
