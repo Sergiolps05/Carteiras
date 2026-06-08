@@ -381,37 +381,42 @@ with col_baixo2:
             fig5.update_layout(coloraxis_showscale=False, margin=dict(l=100, r=40, t=10, b=10)) 
             st.plotly_chart(fig5, use_container_width=True)
 
-
 # -------------------------------------------------------------------------
-# LINHA 4 DE GRÁFICOS: MÉDIA DE INADIMPLÊNCIA POR MÊS (Vertical)
+# LINHA 4 DE GRÁFICOS: MÉDIA DE INADIMPLÊNCIA (POR MÊS DO RELATÓRIO)
 # -------------------------------------------------------------------------
-st.markdown("**Média de Inadimplência por Mês**")
+st.markdown("**Evolução da Média de Inadimplência (Histórico de Relatórios)**")
 with st.container(height=450, border=True):
-    if 'Mes_Grafico' in df_graficos_filtrados.columns:
+    # Usamos o df_filtrado (que tem o histórico completo) em vez do df_graficos_filtrados
+    if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
         try:
-            # Agrupa calculando a MÉDIA (.mean) em vez da soma
-            df_g_media = df_graficos_filtrados.groupby('Mes_Grafico')[coluna_valor].mean().reset_index()
-            df_g_media = df_g_media.sort_values(by='Mes_Grafico', ascending=True)
-            df_g_media['Mes_Exibicao'] = df_g_media['Mes_Grafico'].apply(lambda x: f"{x[-2:]}/{x[:4]}" if x != 'Sem Data' else x)
+            # 1. Soma o valor total da carteira em CADA data de relatório
+            df_totais_por_data = df_filtrado.groupby('Data_Analise_dt')[coluna_valor].sum().reset_index()
+            
+            # 2. Cria a coluna de Mês/Ano baseada na data do relatório
+            df_totais_por_data['Mes_Relatorio'] = df_totais_por_data['Data_Analise_dt'].dt.strftime('%Y-%m')
+            
+            # 3. Tira a MÉDIA desses totais agrupando pelo Mês
+            df_g_media = df_totais_por_data.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
+            df_g_media = df_g_media.sort_values(by='Mes_Relatorio', ascending=True)
+            df_g_media['Mes_Exibicao'] = df_g_media['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
             
             # Gráfico Vertical (orientation='v')
             fig_media = px.bar(
                 df_g_media, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
                 template="plotly_dark", height=400, text=coluna_valor,
-                color_discrete_sequence=['#17a2b8'] # Azul para diferenciar do Total que é Verde
+                color_discrete_sequence=['#17a2b8'] # Azul
             )
             
-            # Formatação dos eixos (esconde os números laterais e põe no topo da barra)
             fig_media.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_g_media['Mes_Exibicao'])
             fig_media.update_yaxes(showticklabels=False, title=None, showgrid=False)
-            
-            # Coloca o valor a flutuar por cima da coluna (textposition='outside')
             fig_media.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
             fig_media.update_layout(margin=dict(l=10, r=10, t=20, b=10))
             
             st.plotly_chart(fig_media, use_container_width=True)
-        except: 
-            st.warning("⚠️ Erro ao gerar o gráfico de média mensal.")
+        except Exception as e: 
+            st.warning(f"⚠️ Erro ao gerar o gráfico de média mensal: {e}")
+    else:
+        st.info("Não há histórico de datas de relatório suficiente para exibir este gráfico.")
 
 
 st.markdown("---")
