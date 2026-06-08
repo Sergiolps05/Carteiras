@@ -83,7 +83,7 @@ else:
 
 # Mapeamento dos nomes exatos das colunas
 coluna_carteira = 'Carteira'
-coluna_valor = 'Valor Liq Calc python'
+coluna_valor = 'Valor'
 coluna_cobranca = 'COBRANÇA'
 coluna_cliente = 'N Fantasia'
 coluna_id = 'ID_Único'
@@ -390,7 +390,7 @@ colunas_desejadas = [
     'No. Titulo',
     'Tipo',
     'CNPJ/CPF',
-    'Valor Liq Calc python',
+    'Valor',
     'N Fantasia',
     'DT Emissao',
     'Vencto real',
