@@ -382,37 +382,46 @@ with col_baixo2:
             st.plotly_chart(fig5, use_container_width=True)
 
 # -------------------------------------------------------------------------
-# LINHA 4 DE GRÁFICOS: MÉDIA DE INADIMPLÊNCIA (POR MÊS DO RELATÓRIO)
+# LINHA 4 DE GRÁFICOS: MÉDIA MENSAL DA INADIMPLÊNCIA GERAL
 # -------------------------------------------------------------------------
-st.markdown("**Evolução da Média de Inadimplência (Histórico de Relatórios)**")
+st.markdown("**Média Mensal da Inadimplência Geral (Média dos dias do mês)**")
 with st.container(height=450, border=True):
-    # Usamos o df_filtrado (que tem o histórico completo) em vez do df_graficos_filtrados
+    # Vamos usar o df_filtrado pois ele tem o histórico de todos os dias
     if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
         try:
-            # 1. Soma o valor total da carteira em CADA data de relatório
-            df_totais_por_data = df_filtrado.groupby('Data_Analise_dt')[coluna_valor].sum().reset_index()
+            df_historico = df_filtrado.copy()
             
-            # 2. Cria a coluna de Mês/Ano baseada na data do relatório
-            df_totais_por_data['Mes_Relatorio'] = df_totais_por_data['Data_Analise_dt'].dt.strftime('%Y-%m')
+            # PASSO 1: Extrair apenas o DIA exato (ignorando as horas, se existirem)
+            df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
             
-            # 3. Tira a MÉDIA desses totais agrupando pelo Mês
-            df_g_media = df_totais_por_data.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
-            df_g_media = df_g_media.sort_values(by='Mes_Relatorio', ascending=True)
-            df_g_media['Mes_Exibicao'] = df_g_media['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
+            # PASSO 2: Descobrir o Valor TOTAL de inadimplência em CADA DIA isolado
+            df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
             
-            # Gráfico Vertical (orientation='v')
-            fig_media = px.bar(
-                df_g_media, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
+            # PASSO 3: Extrair o Mês/Ano de cada dia de relatório
+            df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
+            df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
+            
+            # PASSO 4: Tirar a MÉDIA REAL dos totais diários agrupando pelo Mês
+            df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
+            df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
+            
+            # Formata o mês para o padrão brasileiro (MM/YYYY) na tela
+            df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
+            
+            # PASSO 5: Desenhar o Gráfico Vertical
+            fig_media_geral = px.bar(
+                df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
                 template="plotly_dark", height=400, text=coluna_valor,
-                color_discrete_sequence=['#17a2b8'] # Azul
+                color_discrete_sequence=['#17a2b8'] # Mantido azul para não confundir com o Total Verde
             )
             
-            fig_media.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_g_media['Mes_Exibicao'])
-            fig_media.update_yaxes(showticklabels=False, title=None, showgrid=False)
-            fig_media.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
-            fig_media.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+            # Limpeza visual do gráfico (Deixa apenas os meses em baixo e os valores a flutuar)
+            fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
+            fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
+            fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
+            fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
             
-            st.plotly_chart(fig_media, use_container_width=True)
+            st.plotly_chart(fig_media_geral, use_container_width=True)
         except Exception as e: 
             st.warning(f"⚠️ Erro ao gerar o gráfico de média mensal: {e}")
     else:
