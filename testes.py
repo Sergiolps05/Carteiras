@@ -1,16 +1,30 @@
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-
+import io
 # =============================================================================
 # 1. CONFIGURAÇÕES DE LAYOUT DA PÁGINA (STREAMLIT)
 # =============================================================================
 st.set_page_config(
-    page_title="Dashboard Seguro - Carteiras",
+    page_title="Dashboard - Carteiras",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded" 
 )
+# Esconde o botão do GitHub, o menu superior e o rodapé do Streamlit
+ocultar_elementos_padrao = """
+    <style>
+    /* Esconde o botão Deploy/GitHub e os três pontinhos */
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    
+    /* Esconde o rodapé 'Made with Streamlit' */
+    footer {visibility: hidden !important;}
+    
+    /* Remove a linha de decoração no topo da página */
+    header {visibility: hidden !important;}
+    </style>
+"""
+st.markdown(ocultar_elementos_padrao, unsafe_allow_html=True)
 
 # Puxando o link blindado do cofre do Streamlit (Segurança Máxima)
 URL_SHEETS = st.secrets["URL_PLANILHA"]
@@ -93,6 +107,7 @@ coluna_vencimento = 'Vencto real'
 coluna_status = 'Status Atend'
 coluna_tipo = 'Tipo'
 coluna_data_relatorio = 'Data_Relatorio_Consolidada'
+coluna_cnpj = 'CNPJ/CPF'
 
 # Tratamento inicial dos números
 if coluna_valor in df_carteira_crua.columns:
@@ -106,6 +121,7 @@ if coluna_status in df_carteira_crua.columns:
 # Tratamento da Data do Relatório (Snapshots)
 if coluna_data_relatorio in df_carteira_crua.columns:
     df_carteira_crua['Data_Analise_dt'] = pd.to_datetime(df_carteira_crua[coluna_data_relatorio], errors='coerce', dayfirst=True)
+    
     opcoes_data_relatorio = df_carteira_crua['Data_Analise_dt'].dropna().sort_values(ascending=False).dt.strftime('%d/%m/%Y').unique().tolist()
 else:
     df_carteira_crua['Data_Analise_dt'] = pd.NaT
@@ -157,23 +173,28 @@ if coluna_cliente in df_carteira_crua.columns:
     sel_cliente = st.sidebar.multiselect("2. CLIENTE:", options=opcoes_cliente, placeholder="Todos")
 else: sel_cliente = []
 
+if coluna_cnpj in df_carteira_crua.columns:
+    opcoes_cnpj = sorted([str(x) for x in df_carteira_crua[coluna_cnpj].dropna().unique()])
+    sel_cnpj = st.sidebar.multiselect("3. CNPJ/CPF:", options=opcoes_cnpj, placeholder="Todos")
+else: sel_cnpj = []
+
 if coluna_status in df_carteira_crua.columns:
     opcoes_status = sorted([str(x) for x in df_carteira_crua[coluna_status].unique()], key=int)
-    sel_status = st.sidebar.multiselect("3. STATUS ATEND:", options=opcoes_status, placeholder="Todos")
+    sel_status = st.sidebar.multiselect("4. STATUS ATEND:", options=opcoes_status, placeholder="Todos")
 else: sel_status = []
 
 if coluna_grupo in df_carteira_crua.columns:
     opcoes_grupo = sorted([str(x) for x in df_carteira_crua[coluna_grupo].dropna().unique()])
-    sel_grupo = st.sidebar.multiselect("4. GRUPO ATEND:", options=opcoes_grupo, placeholder="Todos")
+    sel_grupo = st.sidebar.multiselect("5. GRUPO ATEND:", options=opcoes_grupo, placeholder="Todos")
 else: sel_grupo = []
 
 if coluna_range in df_carteira_crua.columns:
     opcoes_range = sorted([str(x) for x in df_carteira_crua[coluna_range].dropna().unique()])
-    sel_range = st.sidebar.multiselect("5. RANGE ACOMPANHAMENTO:", options=opcoes_range, placeholder="Todos")
+    sel_range = st.sidebar.multiselect("6. RANGE ACOMPANHAMENTO:", options=opcoes_range, placeholder="Todos")
 else: sel_range = []
 
-sel_mes = st.sidebar.multiselect("6. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
-sel_dia = st.sidebar.multiselect("7. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
+sel_mes = st.sidebar.multiselect("7. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
+sel_dia = st.sidebar.multiselect("8. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
 
 # -------------------------------------------------------------------------
 # APLICANDO FILTROS GERAIS
@@ -182,6 +203,7 @@ df_filtrado = df_carteira_crua.copy()
 if sel_carteira: df_filtrado = df_filtrado[df_filtrado[coluna_carteira].astype(str).isin(sel_carteira)]
 if sel_cobranca: df_filtrado = df_filtrado[df_filtrado[coluna_cobranca].astype(str).isin(sel_cobranca)]
 if sel_cliente:  df_filtrado = df_filtrado[df_filtrado[coluna_cliente].astype(str).isin(sel_cliente)]
+if sel_cnpj:     df_filtrado = df_filtrado[df_filtrado[coluna_cnpj].astype(str).isin(sel_cnpj)] # <--- ADICIONE AQUI
 if sel_status:   df_filtrado = df_filtrado[df_filtrado[coluna_status].astype(str).isin(sel_status)]
 if sel_grupo:    df_filtrado = df_filtrado[df_filtrado[coluna_grupo].astype(str).isin(sel_grupo)]
 if sel_range:    df_filtrado = df_filtrado[df_filtrado[coluna_range].astype(str).isin(sel_range)]
@@ -241,7 +263,7 @@ nome_carteira = 'VISÃO GERAL (MASTER)' if carteira_ativa == 'Geral' else f'Cart
 titulo_painel = f"Controlo de Inadimplência — {nome_carteira} | 📅 {sel_data_relatorio_str}"
 
 st.markdown(f"# {titulo_painel}")
-st.write("Dados atualizados em tempo real diretamente do Google Sheets.")
+st.write("Dados atualizados diariamente .")
 st.markdown("---")
 
 st.markdown("### 📈 Indicadores Gerais")
@@ -336,7 +358,7 @@ with col_pizza2:
 col_baixo1, col_baixo2 = st.columns(2)
 
 with col_baixo1:
-    st.markdown("**Valor Vencido por Mês**")
+    st.markdown("**Valor Vencido por Mês (TOTAL)**")
     with st.container(height=450, border=True):
         if 'Mes_Grafico' in df_graficos_filtrados.columns:
             try:
@@ -381,6 +403,52 @@ with col_baixo2:
             fig5.update_layout(coloraxis_showscale=False, margin=dict(l=100, r=40, t=10, b=10)) 
             st.plotly_chart(fig5, use_container_width=True)
 
+# -------------------------------------------------------------------------
+# LINHA 4 DE GRÁFICOS: MÉDIA MENSAL DA INADIMPLÊNCIA GERAL
+# -------------------------------------------------------------------------
+st.markdown("**Média Mensal da Inadimplência Geral (Média dos dias do mês)**")
+with st.container(height=450, border=True):
+    # Vamos usar o df_filtrado pois ele tem o histórico de todos os dias
+    if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
+        try:
+            df_historico = df_filtrado.copy()
+            
+            # PASSO 1: Extrair apenas o DIA exato (ignorando as horas, se existirem)
+            df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
+            
+            # PASSO 2: Descobrir o Valor TOTAL de inadimplência em CADA DIA isolado
+            df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
+            
+            # PASSO 3: Extrair o Mês/Ano de cada dia de relatório
+            df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
+            df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
+            
+            # PASSO 4: Tirar a MÉDIA REAL dos totais diários agrupando pelo Mês
+            df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
+            df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
+            
+            # Formata o mês para o padrão brasileiro (MM/YYYY) na tela
+            df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
+            
+            # PASSO 5: Desenhar o Gráfico Vertical
+            fig_media_geral = px.bar(
+                df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
+                template="plotly_dark", height=400, text=coluna_valor,
+                color_discrete_sequence=['#17a2b8'] # Mantido azul para não confundir com o Total Verde
+            )
+            
+            # Limpeza visual do gráfico (Deixa apenas os meses em baixo e os valores a flutuar)
+            fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
+            fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
+            fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
+            fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+            
+            st.plotly_chart(fig_media_geral, use_container_width=True)
+        except Exception as e: 
+            st.warning(f"⚠️ Erro ao gerar o gráfico de média mensal: {e}")
+    else:
+        st.info("Não há histórico de datas de relatório suficiente para exibir este gráfico.")
+
 
 st.markdown("---")
 st.markdown("### 📋 Tabela de Títulos Resumida")
@@ -399,7 +467,6 @@ colunas_desejadas = [
     'Status Atend',
     'Grupo Atendimento',
     'Range_Acompanhamento',
-    
 ]
 
 # 2. O sistema verifica quais dessas colunas realmente existem na base para não dar erro
@@ -407,3 +474,22 @@ colunas_para_exibir = [col for col in colunas_desejadas if col in df_filtrado_fi
 
 # 3. Exibe a tabela apenas com as colunas selecionadas
 st.dataframe(df_filtrado_final[colunas_para_exibir], use_container_width=True, hide_index=True)
+
+# =============================================================================
+# EXPORTAÇÃO PARA EXCEL (.XLSX)
+# =============================================================================
+try:
+    # Cria um arquivo Excel virtual na memória
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df_filtrado_final[colunas_para_exibir].to_excel(writer, index=False, sheet_name='Inadimplencia')
+    
+    # Renderiza o botão de download com o arquivo pronto
+    st.download_button(
+        label="📥 Baixar Tabela em Excel (.xlsx)",
+        data=buffer.getvalue(),
+        file_name=f"Relatorio_Inadimplencia_Carteira_{carteira_ativa}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+except Exception as e:
+    st.warning("Para habilitar o download em Excel, adicione 'openpyxl' no seu arquivo requirements.txt")
