@@ -409,38 +409,38 @@ st.divider()
 # -------------------------------------------------------------------------
 # LINHA 4 DE GRÁFICOS: MÉDIA MENSAL DA INADIMPLÊNCIA GERAL
 # -------------------------------------------------------------------------
-st.markdown("#### 📈 Histórico: Média Mensal da Inadimplência Geral")
-with st.container(height=450, border=True):
-    if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
-        try:
-            df_historico = df_filtrado.copy()
-            df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
-            df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
+# st.markdown("#### 📈 Histórico: Média Mensal da Inadimplência Geral")
+# with st.container(height=450, border=True):
+#     if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
+#         try:
+#             df_historico = df_filtrado.copy()
+#             df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
+#             df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
             
-            df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
-            df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
+#             df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
+#             df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
             
-            df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
-            df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
+#             df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
+#             df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
             
-            df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
+#             df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
             
-            fig_media_geral = px.bar(
-                df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
-                template="plotly_dark", height=400, text=coluna_valor,
-                color_discrete_sequence=['#17a2b8']
-            )
+#             fig_media_geral = px.bar(
+#                 df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
+#                 template="plotly_dark", height=400, text=coluna_valor,
+#                 color_discrete_sequence=['#17a2b8']
+#             )
             
-            fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
-            fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
-            fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
-            fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+#             fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
+#             fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
+#             fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
+#             fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
             
-            st.plotly_chart(fig_media_geral, use_container_width=True)
-        except Exception as e: 
-            pass
+#             st.plotly_chart(fig_media_geral, use_container_width=True)
+#         except Exception as e: 
+#             pass
 
-st.markdown("<br><br>", unsafe_allow_html=True) # Dá um respiro antes da tabela
+# st.markdown("<br><br>", unsafe_allow_html=True) # Dá um respiro antes da tabela
 
 # =============================================================================
 # PAINEL RETRÁTIL (EXPANDER) PARA A TABELA DE DADOS E EXPORTAÇÃO
