@@ -6,6 +6,13 @@ import io
 # =============================================================================
 # 1. CONFIGURAÇÕES DE LAYOUT E ESTILO PREMIUM (UI/UX)
 # =============================================================================
+st.set_page_config(
+    page_title="Dashboard Seguro - Carteiras",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded" 
+)
+
 estilo_premium = """
     <style>
     /* Esconde estritamente o botão de Deploy e o menu do Streamlit */
@@ -31,13 +38,6 @@ estilo_premium = """
 """
 st.markdown(estilo_premium, unsafe_allow_html=True)
 
-st.set_page_config(
-    page_title="Dashboard Seguro - Carteiras",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded" 
-)
-st.markdown(estilo_premium, unsafe_allow_html=True)
 
 # Puxando o link blindado do cofre do Streamlit
 URL_SHEETS = st.secrets["URL_PLANILHA"]
