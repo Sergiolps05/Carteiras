@@ -7,6 +7,7 @@ import io
 # 1. CONFIGURAÇÕES DE LAYOUT E ESTILO PREMIUM (UI/UX)
 # =============================================================================
 # Esconde elementos do Streamlit e adiciona CSS para Cards Premium
+# Esconde elementos do Streamlit e adiciona CSS para Cards Premium
 estilo_premium = """
     <style>
     /* Esconde o botão do GitHub e rodapé */
@@ -14,21 +15,22 @@ estilo_premium = """
     footer {visibility: hidden !important;}
     header {visibility: hidden !important;}
     
-    /* Estilização Premium para os KPIs (Cards) */
-    [data-testid="metric-container"] {
-        background-color: #1e1e1e;
-        border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        border-left: 4px solid #4CAF50; /* Detalhe verde na lateral */
+    /* Estilização Premium para os KPIs (Cards flutuantes) */
+    [data-testid="stMetric"] {
+        background-color: #262730 !important; /* Cinza escuro para destacar do fundo preto */
+        border-radius: 10px !important;
+        padding: 15px 20px !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+        border-left: 5px solid #4CAF50 !important; /* Detalhe verde na lateral esquerda */
     }
     
-    /* Muda a cor do detalhe lateral do card de Inadimplência para Vermelho */
-    div:nth-child(2) > div > [data-testid="metric-container"] {
-        border-left: 4px solid #ff4b4b; 
+    /* Afasta um pouco o número principal do título do KPI */
+    [data-testid="stMetricValue"] {
+        margin-top: 10px !important;
     }
     </style>
 """
+st.markdown(estilo_premium, unsafe_allow_html=True)
 
 st.set_page_config(
     page_title="Dashboard Seguro - Carteiras",
