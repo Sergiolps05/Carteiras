@@ -6,8 +6,6 @@ import io
 # =============================================================================
 # 1. CONFIGURAÇÕES DA PÁGINA E UI/UX (Layouts Streamlit)
 # =============================================================================
-# PEP 8: Imports e configurações base no topo.
-# O st.set_page_config DEVE ser o primeiro comando Streamlit a ser executado.
 st.set_page_config(
     page_title="Dashboard Seguro - Carteiras",
     page_icon="📊",
@@ -15,15 +13,12 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# CSS para ocultar botões do Streamlit Cloud, mas mantendo a barra lateral acessível
 estilo_premium = """
     <style>
-    /* Esconde ações do topo direito (Deploy, GitHub), preservando o botão da sidebar (collapsedControl) */
     [data-testid="stToolbarActions"] {visibility: hidden !important;}
     .stDeployButton {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     
-    /* UI Premium: Cards flutuantes para KPIs */
     [data-testid="stMetric"] {
         background-color: #262730 !important; 
         border-radius: 10px !important;
@@ -38,18 +33,16 @@ estilo_premium = """
 """
 st.markdown(estilo_premium, unsafe_allow_html=True)
 
-# Integração de API (Google Sheets via URL blindada)
 URL_SHEETS = st.secrets["URL_PLANILHA"]
 
 # =============================================================================
 # 2. ENGENHARIA DE DADOS (Pandas & Cache)
 # =============================================================================
-@st.cache_data(ttl=600)  # st.cache para otimizar performance no portfólio
+@st.cache_data(ttl=600)
 def carregar_dados_sheets(url: str) -> pd.DataFrame:
-    """Extrai e higieniza os dados primários da base."""
     try:
         df = pd.read_csv(url, dtype={'Carteira': str})
-        df.columns = df.columns.str.strip() # Tratamento Pandas: Remoção de espaços invisíveis
+        df.columns = df.columns.str.strip() 
         if 'Carteira' in df.columns:
             df['Carteira'] = df['Carteira'].astype(str).str.strip().str.zfill(2)
         return df
@@ -77,19 +70,21 @@ if not st.session_state["autenticado"]:
             
             senha_digitada = st.text_input("Senha de Acesso:", type="password")
             
-            if st.button("Entrar no Sistema", type="primary", use_container_width=True):
+            # CORRIGIDO AQUI: width="stretch"
+            if st.button("Entrar no Sistema", type="primary", width="stretch"):
                 if "tokens" in st.secrets and senha_digitada in st.secrets["tokens"]:
                     st.session_state["autenticado"] = True
                     st.session_state["carteira_ativa"] = st.secrets["tokens"][senha_digitada]
                     st.rerun()
                 else:
                     st.error("❌ Credencial incorreta ou acesso negado.")
-    st.stop()  # Impede renderização da página sem login LGPD/Compliance
+    st.stop()  
 
 carteira_ativa = st.session_state["carteira_ativa"]
 carteira_ativa = "Geral" if str(carteira_ativa).lower() == "geral" else str(carteira_ativa).strip().zfill(2)
 
-st.sidebar.button("🚪 Encerrar Sessão", use_container_width=True, on_click=lambda: st.session_state.clear() or st.rerun())
+# CORRIGIDO AQUI: width="stretch"
+st.sidebar.button("🚪 Encerrar Sessão", width="stretch", on_click=lambda: st.session_state.clear() or st.rerun())
 st.sidebar.divider()
 
 # =============================================================================
@@ -97,13 +92,11 @@ st.sidebar.divider()
 # =============================================================================
 df_carteira_crua = df_carteiras.copy() if carteira_ativa == "Geral" else df_carteiras[df_carteiras['Carteira'] == carteira_ativa].copy()
 
-# Variáveis mapeadas para facilitar manutenibilidade
 coluna_valor = 'Valor'
 coluna_status = 'Status Atend'
 coluna_data_relatorio = 'Data_Relatorio_Consolidada'
 coluna_vencimento = 'Vencto real'
 
-# Tratamento de tipagem (Vetorização para performance)
 if coluna_valor in df_carteira_crua.columns:
     df_carteira_crua[coluna_valor] = pd.to_numeric(
         df_carteira_crua[coluna_valor].astype(str).str.replace('R$', '', regex=False)
@@ -139,7 +132,6 @@ st.sidebar.divider()
 st.sidebar.markdown("### 🔍 Segmentação")
 
 def criar_filtro(coluna, label):
-    """Função utilitária para gerar filtros se a coluna existir no DataFrame."""
     if coluna in df_carteira_crua.columns:
         opcoes = sorted([str(x) for x in df_carteira_crua[coluna].dropna().unique()])
         return st.sidebar.multiselect(label, options=opcoes, placeholder="Todos")
@@ -201,7 +193,6 @@ calc_delta = lambda at, ant: f"{((at - ant) / ant) * 100:+.1f}%" if ant else Non
 st.markdown(f"<h1 style='color: #4CAF50;'>Controle de Inadimplência</h1>", unsafe_allow_html=True)
 st.markdown(f"<h4 style='color: #bbb;'>{carteira_ativa if carteira_ativa == 'Geral' else f'Carteira {carteira_ativa}'}</h4>", unsafe_allow_html=True)
 
-# KPIs
 g1, g2, g3 = st.columns(3)
 g1.metric("💰 Total Geral (Valor Líq)", f"R$ {t_geral:,.2f}", calc_delta(t_geral, t_geral_ant), delta_color="inverse")
 g2.metric("📄 Quantidade de Títulos", f"{q_titulos:,}".replace(",", "."), calc_delta(q_titulos, q_titulos_ant), delta_color="inverse")
@@ -213,7 +204,6 @@ g4.metric("🟢 Total Cobrável", f"R$ {v_cobravel:,.2f}", calc_delta(v_cobravel
 g5.metric("🔴 Total Incobrável", f"R$ {v_incobravel:,.2f}", calc_delta(v_incobravel, v_incobravel_ant), delta_color="inverse")
 st.divider()
 
-# Gráficos
 if 'N Fantasia' in df_atual.columns and not df_atual.empty:
     st.markdown("### 🏢 Concentração de Inadimplência por Clientes")
     with st.container(height=600, border=True):
@@ -222,7 +212,8 @@ if 'N Fantasia' in df_atual.columns and not df_atual.empty:
                       color_discrete_sequence=['#4CAF50'], text=coluna_valor)
         fig1.update_traces(texttemplate='R$ %{text:,.2f}', textposition='auto', textfont=dict(color='white', size=11))
         fig1.update_layout(xaxis_showticklabels=False, xaxis_title=None, yaxis_title=None, margin=dict(l=220, r=40, t=10, b=10))
-        st.plotly_chart(fig1, use_container_width=True)
+        # CORRIGIDO AQUI: width="stretch"
+        st.plotly_chart(fig1, width="stretch")
 
 st.divider()
 
@@ -236,7 +227,8 @@ with col_p1:
                           color_discrete_sequence=['#17a2b8', '#4CAF50', '#20c997', '#0e76a8'])
             fig2.update_traces(textinfo='percent', textfont=dict(size=12, color='white'))
             fig2.update_layout(legend=dict(orientation="h", y=-0.1, xanchor="center", x=0.5))
-            st.plotly_chart(fig2, use_container_width=True)
+            # CORRIGIDO AQUI: width="stretch"
+            st.plotly_chart(fig2, width="stretch")
 
 with col_p2:
     st.markdown("#### 📌 Distribuição por Acompanhamento")
@@ -247,7 +239,8 @@ with col_p2:
                           color_discrete_sequence=['#0e76a8', '#17a2b8', '#4CAF50', '#20c997'])
             fig3.update_traces(textinfo='percent', textfont=dict(size=12, color='white'))
             fig3.update_layout(legend=dict(orientation="h", y=-0.1, xanchor="center", x=0.5))
-            st.plotly_chart(fig3, use_container_width=True)
+            # CORRIGIDO AQUI: width="stretch"
+            st.plotly_chart(fig3, width="stretch")
 
 st.divider()
 
@@ -259,10 +252,10 @@ with st.expander("🗃️ Ver Base de Dados Detalhada e Exportar para Excel"):
     col_exibir = ['No. Titulo', 'Tipo', 'CNPJ/CPF', 'Valor', 'N Fantasia', 'DT Emissao', 'Vencto real', 'Carteira', 'COBRANÇA', 'Status Atend', 'Grupo Atendimento', 'Range_Acompanhamento']
     col_validas = [c for c in col_exibir if c in df_atual.columns]
     
-    st.dataframe(df_atual[col_validas], use_container_width=True, hide_index=True)
+    # CORRIGIDO AQUI: width="stretch"
+    st.dataframe(df_atual[col_validas], width="stretch", hide_index=True)
 
     try:
-        # Requer openpyxl no requirements.txt
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
             df_atual[col_validas].to_excel(writer, index=False, sheet_name='Base_Tratada')
