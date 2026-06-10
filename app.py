@@ -6,6 +6,7 @@ import io
 # =============================================================================
 # 1. CONFIGURAÇÕES DE LAYOUT E ESTILO PREMIUM (UI/UX)
 # =============================================================================
+# REGRA DE OURO: set_page_config tem de ser o PRIMEIRO comando st. do código!
 st.set_page_config(
     page_title="Dashboard Seguro - Carteiras",
     page_icon="📊",
@@ -36,8 +37,8 @@ estilo_premium = """
     }
     </style>
 """
+# Agora sim, injetamos o CSS DEPOIS da página estar configurada
 st.markdown(estilo_premium, unsafe_allow_html=True)
-
 
 # Puxando o link blindado do cofre do Streamlit
 URL_SHEETS = st.secrets["URL_PLANILHA"]
