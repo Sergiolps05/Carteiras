@@ -6,16 +6,14 @@ import io
 # =============================================================================
 # 1. CONFIGURAÇÕES DE LAYOUT E ESTILO PREMIUM (UI/UX)
 # =============================================================================
-# Esconde elementos do Streamlit e adiciona CSS para Cards Premium
 estilo_premium = """
     <style>
-    /* Esconde apenas a barra de ferramentas do lado direito (GitHub/Deploy) */
+    /* Esconde estritamente o botão de Deploy e o menu do Streamlit */
+    .stDeployButton {visibility: hidden !important;}
     [data-testid="stToolbar"] {visibility: hidden !important;}
     
-    /* Esconde o rodapé 'Made with Streamlit' */
+    /* Esconde o rodapé */
     footer {visibility: hidden !important;}
-    
-    /* REMOVIDO o código que escondia o header, para o botão dos filtros voltar a aparecer! */
     
     /* Estilização Premium para os KPIs (Cards flutuantes) */
     [data-testid="stMetric"] {
@@ -26,7 +24,6 @@ estilo_premium = """
         border-left: 5px solid #4CAF50 !important; 
     }
     
-    /* Afasta um pouco o número principal do título do KPI */
     [data-testid="stMetricValue"] {
         margin-top: 10px !important;
     }
