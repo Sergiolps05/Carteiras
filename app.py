@@ -14,15 +14,18 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# CSS Premium (Esconde barra superior, footer e customiza os KPIs)
+# CSS Premium (Esconde apenas o lado direito e customiza os KPIs)
 estilo_premium = """
     <style>
-    /* Esconde estritamente o botão de Deploy e o menu do Streamlit */
+    /* Esconde APENAS as ações do lado direito (Deploy, GitHub, 3 pontinhos) */
+    [data-testid="stToolbarActions"] {visibility: hidden !important;}
     .stDeployButton {visibility: hidden !important;}
-    [data-testid="stToolbar"] {visibility: hidden !important;}
     
     /* Esconde o rodapé */
     footer {visibility: hidden !important;}
+    
+    /* GARANTE que o botão de abrir os filtros (canto esquerdo) fique sempre visível */
+    [data-testid="collapsedControl"] {visibility: visible !important; display: block !important;}
     
     /* Estilização Premium para os KPIs (Cards flutuantes) */
     [data-testid="stMetric"] {
