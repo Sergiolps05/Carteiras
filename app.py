@@ -38,7 +38,15 @@ estilo_premium = """
 """
 st.markdown(estilo_premium, unsafe_allow_html=True)
 
-URL_SHEETS = st.secrets["URL_PLANILHA"]
+# MODO DE SEGURANÇA: Evita a tela branca se os secrets falharem
+try:
+    URL_SHEETS = st.secrets["URL_PLANILHA"]
+except KeyError:
+    st.error("🚨 ERRO CRÍTICO: A variável 'URL_PLANILHA' não foi encontrada nos Secrets!")
+    st.stop()
+except Exception as e:
+    st.error(f"🚨 ERRO NOS SECRETS: {e}")
+    st.stop()
 
 # =============================================================================
 # 2. ENGENHARIA DE DADOS (Pandas & Cache)
