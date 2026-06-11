@@ -241,7 +241,12 @@ with col_p1:
     with st.container(height=480, border=True):
         if 'Grupo Atendimento' in df_atual.columns and not df_atual.empty:
             df_g2 = df_atual.groupby('Grupo Atendimento')[coluna_valor].sum().reset_index()
-            fig2 = px.pie(df_g2, values=coluna_valor, names='Grupo Atendimento', hole=0.4, template="plotly_dark",
+            
+            # CRIANDO A LEGENDA PERSONALIZADA COM NOME, VALOR E %
+            total_g2 = df_g2[coluna_valor].sum() if not df_g2.empty else 1
+            df_g2['Legenda'] = df_g2.apply(lambda r: f"{r['Grupo Atendimento']} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g2)*100:.1f}%)", axis=1)
+            
+            fig2 = px.pie(df_g2, values=coluna_valor, names='Legenda', hole=0.4, template="plotly_dark",
                           color_discrete_sequence=['#17a2b8', '#4CAF50', '#20c997', '#0e76a8'])
             fig2.update_traces(textinfo='percent', textfont=dict(size=12, color='white'))
             fig2.update_layout(legend=dict(orientation="h", y=-0.1, xanchor="center", x=0.5))
@@ -252,13 +257,16 @@ with col_p2:
     with st.container(height=480, border=True):
         if 'Range_Acompanhamento' in df_atual.columns and not df_atual.empty:
             df_g3 = df_atual.groupby('Range_Acompanhamento')[coluna_valor].sum().reset_index()
-            fig3 = px.pie(df_g3, values=coluna_valor, names='Range_Acompanhamento', hole=0.4, template="plotly_dark",
+            
+            # CRIANDO A LEGENDA PERSONALIZADA COM NOME, VALOR E %
+            total_g3 = df_g3[coluna_valor].sum() if not df_g3.empty else 1
+            df_g3['Legenda'] = df_g3.apply(lambda r: f"{r['Range_Acompanhamento']} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g3)*100:.1f}%)", axis=1)
+            
+            fig3 = px.pie(df_g3, values=coluna_valor, names='Legenda', hole=0.4, template="plotly_dark",
                           color_discrete_sequence=['#0e76a8', '#17a2b8', '#4CAF50', '#20c997'])
             fig3.update_traces(textinfo='percent', textfont=dict(size=12, color='white'))
             fig3.update_layout(legend=dict(orientation="h", y=-0.1, xanchor="center", x=0.5))
             st.plotly_chart(fig3, width="stretch")
-
-st.divider()
 
 # -------------------------------------------------------------------------
 # 3. GRÁFICOS DE MÊS E STATUS 
