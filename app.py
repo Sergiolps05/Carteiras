@@ -143,13 +143,16 @@ def criar_filtro(coluna, label):
 sel_carteira = criar_filtro('Carteira', "⭐ CARTEIRA (Master):") if carteira_ativa == "Geral" else []
 sel_cobranca = criar_filtro('COBRANÇA', "1. COBRANÇA:")
 sel_cliente = criar_filtro('N Fantasia', "2. CLIENTE:")
-sel_cnpj = criar_filtro('CNPJ/CPF', "🔢 CNPJ/CPF:")
-sel_status = criar_filtro('Status Atend', "3. STATUS ATEND:")
-sel_grupo = criar_filtro('Grupo Atendimento', "4. GRUPO ATEND:")
-sel_range = criar_filtro('Range_Acompanhamento', "5. RANGE ACOMPANHAMENTO:")
+sel_cnpj = criar_filtro('CNPJ/CPF', "3. CNPJ/CPF:")
+sel_status = criar_filtro('Status Atend', "4. STATUS ATEND:")
+sel_grupo = criar_filtro('Grupo Atendimento', "5. GRUPO ATEND:")
+sel_range = criar_filtro('Range_Acompanhamento', "6. RANGE ACOMPANHAMENTO:")
 
 opcoes_mes = sorted([str(x) for x in df_carteira_crua['Mes_Filtro'].unique()])
-sel_mes = st.sidebar.multiselect("6. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
+sel_mes = st.sidebar.multiselect("7. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
+
+opcoes_dia = sorted([str(x) for x in df_carteira_crua['Data_Exata'].unique()])
+sel_dia = st.sidebar.multiselect("8. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
 
 # -------------------------------------------------------------------------
 # APLICAÇÃO DE FILTROS E CONSTRUÇÃO DE DELTAS
@@ -163,6 +166,7 @@ if sel_status:   df_filtrado = df_filtrado[df_filtrado['Status Atend'].astype(st
 if sel_grupo:    df_filtrado = df_filtrado[df_filtrado['Grupo Atendimento'].astype(str).isin(sel_grupo)]
 if sel_range:    df_filtrado = df_filtrado[df_filtrado['Range_Acompanhamento'].astype(str).isin(sel_range)]
 if sel_mes:      df_filtrado = df_filtrado[df_filtrado['Mes_Filtro'].astype(str).isin(sel_mes)]
+if sel_dia:      df_filtrado = df_filtrado[df_filtrado['Data_Exata'].astype(str).isin(sel_dia)]
 
 df_atual = df_filtrado[df_filtrado['Data_Analise_dt'] == sel_data_relatorio_dt].copy() if sel_data_relatorio_dt else df_filtrado.copy()
 df_anterior = pd.DataFrame(columns=df_filtrado.columns)
