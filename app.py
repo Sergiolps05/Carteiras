@@ -179,10 +179,26 @@ if sel_data_relatorio_dt is not None:
     if datas_anteriores:
         df_anterior = df_filtrado[df_filtrado['Data_Analise_dt'] == max(datas_anteriores)].copy()
 
+# def calcular_kpis(df_alvo):
+#     if df_alvo.empty: return 0.0, 0, 0, 0.0, 0.0
+#     v_total = df_alvo[coluna_valor].sum() if coluna_valor in df_alvo.columns else 0.0
+#     q_tit = df_alvo['ID_Único'].nunique() if 'ID_Único' in df_alvo.columns else len(df_alvo)
+#     q_cli = df_alvo['N Fantasia'].nunique() if 'N Fantasia' in df_alvo.columns else 0
+#     v_cob, v_incob = 0.0, 0.0
+#     if 'COBRANÇA' in df_alvo.columns:
+#         serie = df_alvo['COBRANÇA'].astype(str).str.strip().str.lower()
+#         f_cob = serie.str.contains('cobrável|cobravel', regex=True, na=False) & ~serie.str.contains('incobrável|incobravel', regex=True, na=False)
+#         f_incob = serie.str.contains('incobrável|incobravel', regex=True, na=False)
+#         v_cob, v_incob = df_alvo[f_cob][coluna_valor].sum(), df_alvo[f_incob][coluna_valor].sum()
+#     return v_total, q_tit, q_cli, v_cob, v_incob
+
 def calcular_kpis(df_alvo):
     if df_alvo.empty: return 0.0, 0, 0, 0.0, 0.0
     v_total = df_alvo[coluna_valor].sum() if coluna_valor in df_alvo.columns else 0.0
-    q_tit = df_alvo['ID_Único'].nunique() if 'ID_Único' in df_alvo.columns else len(df_alvo)
+    
+    # MUDANÇA APLICADA AQUI (Agora usa o 'No. Titulo')
+    q_tit = df_alvo['No. Titulo'].nunique() if 'No. Titulo' in df_alvo.columns else len(df_alvo)
+    
     q_cli = df_alvo['N Fantasia'].nunique() if 'N Fantasia' in df_alvo.columns else 0
     v_cob, v_incob = 0.0, 0.0
     if 'COBRANÇA' in df_alvo.columns:
@@ -191,6 +207,8 @@ def calcular_kpis(df_alvo):
         f_incob = serie.str.contains('incobrável|incobravel', regex=True, na=False)
         v_cob, v_incob = df_alvo[f_cob][coluna_valor].sum(), df_alvo[f_incob][coluna_valor].sum()
     return v_total, q_tit, q_cli, v_cob, v_incob
+
+
 
 t_geral, q_titulos, q_clientes, v_cobravel, v_incobravel = calcular_kpis(df_atual)
 t_geral_ant, q_titulos_ant, q_clientes_ant, v_cobravel_ant, v_incobravel_ant = calcular_kpis(df_anterior)
