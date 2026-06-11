@@ -46,7 +46,8 @@ URL_SHEETS = st.secrets["URL_PLANILHA"]
 @st.cache_data(ttl=600)
 def carregar_dados_sheets(url: str) -> pd.DataFrame:
     try:
-        df = pd.read_csv(url, dtype={'Carteira': str})
+        # CORREÇÃO CRÍTICA APLICADA AQUI (low_memory=False)
+        df = pd.read_csv(url, dtype={'Carteira': str}, low_memory=False)
         df.columns = df.columns.str.strip() 
         if 'Carteira' in df.columns:
             df['Carteira'] = df['Carteira'].astype(str).str.strip().str.zfill(2)
@@ -184,9 +185,6 @@ def calcular_kpis(df_alvo):
     
     v_total = df_alvo[coluna_valor].sum() if coluna_valor in df_alvo.columns else 0.0
     
-    # ---------------------------------------------------------------------
-    # NOVA REGRA: Contar ID_Único APENAS para os tipos 'NF' e 'BOL'
-    # ---------------------------------------------------------------------
     if 'Tipo' in df_alvo.columns and 'ID_Único' in df_alvo.columns:
         tipos_formatados = df_alvo['Tipo'].astype(str).str.strip().str.upper()
         df_apenas_titulos = df_alvo[tipos_formatados.isin(['NF', 'BOL'])]
@@ -195,7 +193,6 @@ def calcular_kpis(df_alvo):
         q_tit = df_alvo['ID_Único'].nunique()
     else:
         q_tit = len(df_alvo)
-    # ---------------------------------------------------------------------
     
     q_cli = df_alvo['N Fantasia'].nunique() if 'N Fantasia' in df_alvo.columns else 0
     
@@ -207,24 +204,6 @@ def calcular_kpis(df_alvo):
         v_cob, v_incob = df_alvo[f_cob][coluna_valor].sum(), df_alvo[f_incob][coluna_valor].sum()
         
     return v_total, q_tit, q_cli, v_cob, v_incob
-
-# def calcular_kpis(df_alvo):
-#     if df_alvo.empty: return 0.0, 0, 0, 0.0, 0.0
-#     v_total = df_alvo[coluna_valor].sum() if coluna_valor in df_alvo.columns else 0.0
-    
-#     # MUDANÇA APLICADA AQUI (Agora usa o 'No. Titulo')
-#     q_tit = df_alvo['No. Titulo'].nunique() if 'No. Titulo' in df_alvo.columns else len(df_alvo)
-    
-#     q_cli = df_alvo['N Fantasia'].nunique() if 'N Fantasia' in df_alvo.columns else 0
-#     v_cob, v_incob = 0.0, 0.0
-#     if 'COBRANÇA' in df_alvo.columns:
-#         serie = df_alvo['COBRANÇA'].astype(str).str.strip().str.lower()
-#         f_cob = serie.str.contains('cobrável|cobravel', regex=True, na=False) & ~serie.str.contains('incobrável|incobravel', regex=True, na=False)
-#         f_incob = serie.str.contains('incobrável|incobravel', regex=True, na=False)
-#         v_cob, v_incob = df_alvo[f_cob][coluna_valor].sum(), df_alvo[f_incob][coluna_valor].sum()
-#     return v_total, q_tit, q_cli, v_cob, v_incob
-
-
 
 t_geral, q_titulos, q_clientes, v_cobravel, v_incobravel = calcular_kpis(df_atual)
 t_geral_ant, q_titulos_ant, q_clientes_ant, v_cobravel_ant, v_incobravel_ant = calcular_kpis(df_anterior)
@@ -256,12 +235,10 @@ if 'N Fantasia' in df_atual.columns and not df_atual.empty:
     with st.container(height=600, border=True):
         df_g1 = df_atual.groupby('N Fantasia')[coluna_valor].sum().reset_index().sort_values(coluna_valor)
         
-        # O SEGREDO DO SCROLL: Cálculo matemático da altura (35 pixels por cada cliente)
         altura_interna_g1 = max(550, len(df_g1) * 35)
         
         fig1 = px.bar(df_g1, x=coluna_valor, y='N Fantasia', orientation='h', template="plotly_dark", 
-                      height=altura_interna_g1, # Altura dinâmica para gerar scroll vertical
-                      color_discrete_sequence=['#4CAF50'], text=coluna_valor)
+                      height=altura_interna_g1, color_discrete_sequence=['#4CAF50'], text=coluna_valor)
         
         fig1.update_traces(texttemplate='R$ %{text:,.2f}', textposition='auto', textfont=dict(color='white', size=11))
         fig1.update_layout(xaxis_showticklabels=False, xaxis_title=None, yaxis_title=None, margin=dict(l=220, r=40, t=10, b=10))
@@ -279,7 +256,6 @@ with col_p1:
         if 'Grupo Atendimento' in df_atual.columns and not df_atual.empty:
             df_g2 = df_atual.groupby('Grupo Atendimento')[coluna_valor].sum().reset_index()
             
-            # CRIANDO A LEGENDA PERSONALIZADA COM NOME, VALOR E %
             total_g2 = df_g2[coluna_valor].sum() if not df_g2.empty else 1
             df_g2['Legenda'] = df_g2.apply(lambda r: f"{r['Grupo Atendimento']} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g2)*100:.1f}%)", axis=1)
             
@@ -295,7 +271,6 @@ with col_p2:
         if 'Range_Acompanhamento' in df_atual.columns and not df_atual.empty:
             df_g3 = df_atual.groupby('Range_Acompanhamento')[coluna_valor].sum().reset_index()
             
-            # CRIANDO A LEGENDA PERSONALIZADA COM NOME, VALOR E %
             total_g3 = df_g3[coluna_valor].sum() if not df_g3.empty else 1
             df_g3['Legenda'] = df_g3.apply(lambda r: f"{r['Range_Acompanhamento']} (R$ {r[coluna_valor]:,.2f} | {(r[coluna_valor]/total_g3)*100:.1f}%)", axis=1)
             
