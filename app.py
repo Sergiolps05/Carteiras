@@ -7,7 +7,7 @@ import io
 # 1. CONFIGURAÇÕES DA PÁGINA E UI/UX (Layouts Streamlit)
 # =============================================================================
 st.set_page_config(
-    page_title="Dashboard Seguro - Carteiras",
+    page_title="Dashboard Inadimplência - Carteiras",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded" 
@@ -69,7 +69,7 @@ if not st.session_state["autenticado"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.container(border=True): 
-            st.markdown("<h2 style='text-align: center;'>🔒 Portal da Inadimplência</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center;'> Visualização Inadimplência</h2>", unsafe_allow_html=True)
             st.markdown("<p style='text-align: center; color: #888;'>Insira a sua credencial para acessar a carteira</p>", unsafe_allow_html=True)
             st.divider()
             
@@ -127,12 +127,12 @@ else:
 # -------------------------------------------------------------------------
 # FILTROS LATERAIS INTERATIVOS
 # -------------------------------------------------------------------------
-st.sidebar.markdown("### 📅 Retrato da Base")
+st.sidebar.markdown("###  Dia do relatório")
 sel_data_relatorio_str = st.sidebar.selectbox("Data do Relatório:", options=opcoes_data_relatorio) if opcoes_data_relatorio else "Sem Data"
 sel_data_relatorio_dt = pd.to_datetime(sel_data_relatorio_str, format='%d/%m/%Y') if sel_data_relatorio_str != "Sem Data" else None
 
 st.sidebar.divider()
-st.sidebar.markdown("### 🔍 Segmentação")
+st.sidebar.markdown("###  Filtros")
 
 def criar_filtro(coluna, label):
     if coluna in df_carteira_crua.columns:
@@ -140,7 +140,7 @@ def criar_filtro(coluna, label):
         return st.sidebar.multiselect(label, options=opcoes, placeholder="Todos")
     return []
 
-sel_carteira = criar_filtro('Carteira', "⭐ CARTEIRA (Master):") if carteira_ativa == "Geral" else []
+sel_carteira = criar_filtro('Carteira', " CARTEIRA:") if carteira_ativa == "Geral" else []
 sel_cobranca = criar_filtro('COBRANÇA', "1. COBRANÇA:")
 sel_cliente = criar_filtro('N Fantasia', "2. CLIENTE:")
 sel_cnpj = criar_filtro('CNPJ/CPF', "3. CNPJ/CPF:")
@@ -236,7 +236,7 @@ st.divider()
 # 1. GRÁFICO DE CLIENTES (COM BARRA DE ROLAGEM)
 # -------------------------------------------------------------------------
 if 'N Fantasia' in df_atual.columns and not df_atual.empty:
-    st.markdown("### 🏢 Concentração de Inadimplência por Clientes")
+    st.markdown("###  Concentração de Inadimplência por Clientes")
     with st.container(height=600, border=True):
         df_g1 = df_atual.groupby('N Fantasia')[coluna_valor].sum().reset_index().sort_values(coluna_valor)
         
@@ -258,7 +258,7 @@ st.divider()
 # -------------------------------------------------------------------------
 col_p1, col_p2 = st.columns(2)
 with col_p1:
-    st.markdown("#### 📌 Distribuição por Grupo Atendimento")
+    st.markdown("####  Distribuição por Grupo Atendimento")
     with st.container(height=480, border=True):
         if 'Grupo Atendimento' in df_atual.columns and not df_atual.empty:
             df_g2 = df_atual.groupby('Grupo Atendimento')[coluna_valor].sum().reset_index()
@@ -274,7 +274,7 @@ with col_p1:
             st.plotly_chart(fig2, width="stretch")
 
 with col_p2:
-    st.markdown("#### 📌 Distribuição por Acompanhamento")
+    st.markdown("####  Distribuição por Acompanhamento")
     with st.container(height=480, border=True):
         if 'Range_Acompanhamento' in df_atual.columns and not df_atual.empty:
             df_g3 = df_atual.groupby('Range_Acompanhamento')[coluna_valor].sum().reset_index()
@@ -295,7 +295,7 @@ with col_p2:
 col_baixo1, col_baixo2 = st.columns(2)
 
 with col_baixo1:
-    st.markdown("#### 🗓️ Valor Vencido por Mês (TOTAL)")
+    st.markdown("####  Valor Vencido por Mês (TOTAL)")
     with st.container(height=450, border=True):
         if 'Mes_Grafico' in df_atual.columns:
             try:
@@ -344,43 +344,43 @@ st.divider()
 # -------------------------------------------------------------------------
 # 4. GRÁFICO DE HISTÓRICO: MÉDIA MENSAL DA INADIMPLÊNCIA GERAL
 # -------------------------------------------------------------------------
-st.markdown("#### 📈 Histórico: Média Mensal da Inadimplência Geral")
-with st.container(height=450, border=True):
-    if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
-        try:
-            df_historico = df_filtrado.copy()
-            df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
-            df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
+# st.markdown("#### 📈 Histórico: Média Mensal da Inadimplência Geral")
+# with st.container(height=450, border=True):
+#     if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
+#         try:
+#             df_historico = df_filtrado.copy()
+#             df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
+#             df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
             
-            df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
-            df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
+#             df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
+#             df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
             
-            df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
-            df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
+#             df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
+#             df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
             
-            df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
+#             df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
             
-            fig_media_geral = px.bar(
-                df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
-                template="plotly_dark", height=400, text=coluna_valor,
-                color_discrete_sequence=['#17a2b8']
-            )
+#             fig_media_geral = px.bar(
+#                 df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
+#                 template="plotly_dark", height=400, text=coluna_valor,
+#                 color_discrete_sequence=['#17a2b8']
+#             )
             
-            fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
-            fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
-            fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
-            fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+#             fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
+#             fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
+#             fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
+#             fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
             
-            st.plotly_chart(fig_media_geral, width="stretch")
-        except Exception as e: 
-            pass
+#             st.plotly_chart(fig_media_geral, width="stretch")
+#         except Exception as e: 
+#             pass
 
-st.markdown("<br><br>", unsafe_allow_html=True) 
+# st.markdown("<br><br>", unsafe_allow_html=True) 
 
 # =============================================================================
 # EXPORTAÇÃO E BI (Integração Openpyxl / Power BI)
 # =============================================================================
-with st.expander("🗃️ Ver Base de Dados Detalhada e Exportar para Excel"):
+with st.expander(" Ver Base de Dados Detalhada e Exportar para Excel"):
     st.markdown("Base higienizada pronta para exportação e modelagem.")
     col_exibir = ['No. Titulo', 'Tipo', 'CNPJ/CPF', 'Valor', 'N Fantasia', 'DT Emissao', 'Vencto real', 'Carteira', 'COBRANÇA', 'Status Atend', 'Grupo Atendimento', 'Range_Acompanhamento']
     col_validas = [c for c in col_exibir if c in df_atual.columns]
@@ -393,7 +393,7 @@ with st.expander("🗃️ Ver Base de Dados Detalhada e Exportar para Excel"):
             df_atual[col_validas].to_excel(writer, index=False, sheet_name='Base_Tratada')
         
         st.download_button(
-            label="📥 Baixar Planilha (.xlsx)",
+            label=" Baixar Planilha (.xlsx)",
             data=buffer.getvalue(),
             file_name=f"Relatorio_Base_{carteira_ativa}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
