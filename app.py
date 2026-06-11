@@ -54,7 +54,6 @@ except Exception as e:
 @st.cache_data(ttl=600)
 def carregar_dados_sheets(url: str) -> pd.DataFrame:
     try:
-        # CORREÇÃO CRÍTICA APLICADA AQUI (low_memory=False)
         df = pd.read_csv(url, dtype={'Carteira': str, 'Parcela': str}, low_memory=False)
         df.columns = df.columns.str.strip() 
         if 'Carteira' in df.columns:
@@ -132,6 +131,7 @@ if coluna_vencimento in df_carteira_crua.columns:
     df_carteira_crua['Mes_Grafico'] = datas_venc.dt.strftime('%Y-%m').fillna('Sem Data')
 else:
     df_carteira_crua['Mes_Filtro'] = df_carteira_crua['Data_Exata'] = df_carteira_crua['Mes_Grafico'] = 'Sem Data'
+
 # -------------------------------------------------------------------------
 # FILTROS LATERAIS INTERATIVOS (CASCATA DINÂMICA)
 # -------------------------------------------------------------------------
@@ -140,23 +140,18 @@ sel_data_relatorio_str = st.sidebar.selectbox("Data do Relatório:", options=opc
 sel_data_relatorio_dt = pd.to_datetime(sel_data_relatorio_str, format='%d/%m/%Y') if sel_data_relatorio_str != "Sem Data" else None
 
 st.sidebar.divider()
-st.sidebar.markdown("### 🔍 Filtros Dinâmicos")
+st.sidebar.markdown("###  Filtros Dinâmicos")
 
-# Função inteligente que lê as opções disponíveis e já devolve a base cortada
 def filtro_dinamico(df, coluna, label):
     if coluna in df.columns:
-        # Lê apenas as opções que AINDA existem no DataFrame
         opcoes = sorted([str(x) for x in df[coluna].dropna().unique()])
         selecao = st.sidebar.multiselect(label, options=opcoes, placeholder="Todos")
         if selecao:
-            # Se o usuário escolheu algo, corta o DataFrame
             return df[df[coluna].astype(str).isin(selecao)]
     return df
 
-# Inicia o funil com a base inteira da carteira do usuário
 df_filtrado = df_carteira_crua.copy()
 
-# APLICAÇÃO DO FUNIL DE CIMA PARA BAIXO
 if carteira_ativa == "Geral":
     df_filtrado = filtro_dinamico(df_filtrado, 'Carteira', "⭐ CARTEIRA:")
 
@@ -171,24 +166,8 @@ df_filtrado = filtro_dinamico(df_filtrado, 'Data_Exata', "8. DIA VENCIMENTO:")
 df_filtrado = filtro_dinamico(df_filtrado, 'Prefixo', "9. PREFIXO:")
 
 # -------------------------------------------------------------------------
-# CONSTRUÇÃO DE DELTAS
+# CONSTRUÇÃO DE DELTAS E BASE ATUAL
 # -------------------------------------------------------------------------
-
-# -------------------------------------------------------------------------
-# APLICAÇÃO DE FILTROS E CONSTRUÇÃO DE DELTAS
-# -------------------------------------------------------------------------
-df_filtrado = df_carteira_crua.copy()
-if sel_carteira: df_filtrado = df_filtrado[df_filtrado['Carteira'].astype(str).isin(sel_carteira)]
-if sel_cobranca: df_filtrado = df_filtrado[df_filtrado['COBRANÇA'].astype(str).isin(sel_cobranca)]
-if sel_cliente:  df_filtrado = df_filtrado[df_filtrado['N Fantasia'].astype(str).isin(sel_cliente)]
-if sel_cnpj:     df_filtrado = df_filtrado[df_filtrado['CNPJ/CPF'].astype(str).isin(sel_cnpj)]
-if sel_status:   df_filtrado = df_filtrado[df_filtrado['Status Atend'].astype(str).isin(sel_status)]
-if sel_grupo:    df_filtrado = df_filtrado[df_filtrado['Grupo Atendimento'].astype(str).isin(sel_grupo)]
-if sel_range:    df_filtrado = df_filtrado[df_filtrado['Range_Acompanhamento'].astype(str).isin(sel_range)]
-if sel_mes:      df_filtrado = df_filtrado[df_filtrado['Mes_Filtro'].astype(str).isin(sel_mes)]
-if sel_dia:      df_filtrado = df_filtrado[df_filtrado['Data_Exata'].astype(str).isin(sel_dia)]
-if sel_prefixo:  df_filtrado = df_filtrado[df_filtrado['Prefixo'].astype(str).isin(sel_prefixo)]
-    
 df_atual = df_filtrado[df_filtrado['Data_Analise_dt'] == sel_data_relatorio_dt].copy() if sel_data_relatorio_dt else df_filtrado.copy()
 df_anterior = pd.DataFrame(columns=df_filtrado.columns)
 
@@ -348,42 +327,6 @@ with col_baixo2:
             st.plotly_chart(fig5, width="stretch")
 
 st.divider()
-
-# -------------------------------------------------------------------------
-# 4. GRÁFICO DE HISTÓRICO: MÉDIA MENSAL DA INADIMPLÊNCIA GERAL
-# -------------------------------------------------------------------------
-# st.markdown("#### 📈 Histórico: Média Mensal da Inadimplência Geral")
-# with st.container(height=450, border=True):
-#     if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
-#         try:
-#             df_historico = df_filtrado.copy()
-#             df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
-#             df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
-            
-#             df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
-#             df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
-            
-#             df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
-#             df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
-            
-#             df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
-            
-#             fig_media_geral = px.bar(
-#                 df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
-#                 template="plotly_dark", height=400, text=coluna_valor,
-#                 color_discrete_sequence=['#17a2b8']
-#             )
-            
-#             fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
-#             fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
-#             fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
-#             fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
-            
-#             st.plotly_chart(fig_media_geral, width="stretch")
-#         except Exception as e: 
-#             pass
-
-# st.markdown("<br><br>", unsafe_allow_html=True) 
 
 # =============================================================================
 # EXPORTAÇÃO E BI (Integração Openpyxl / Power BI)
