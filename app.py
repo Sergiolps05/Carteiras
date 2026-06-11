@@ -15,10 +15,15 @@ st.set_page_config(
 
 estilo_premium = """
     <style>
+    /* Esconde ações do topo direito (Deploy, GitHub), preservando o botão da sidebar */
     [data-testid="stToolbarActions"] {visibility: hidden !important;}
     .stDeployButton {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     
+    /* GARANTE que o botão de abrir os filtros (canto esquerdo) fique sempre visível */
+    [data-testid="collapsedControl"] {visibility: visible !important; display: block !important;}
+    
+    /* UI Premium: Cards flutuantes para KPIs */
     [data-testid="stMetric"] {
         background-color: #262730 !important; 
         border-radius: 10px !important;
@@ -70,7 +75,6 @@ if not st.session_state["autenticado"]:
             
             senha_digitada = st.text_input("Senha de Acesso:", type="password")
             
-            # CORRIGIDO AQUI: width="stretch"
             if st.button("Entrar no Sistema", type="primary", width="stretch"):
                 if "tokens" in st.secrets and senha_digitada in st.secrets["tokens"]:
                     st.session_state["autenticado"] = True
@@ -83,7 +87,6 @@ if not st.session_state["autenticado"]:
 carteira_ativa = st.session_state["carteira_ativa"]
 carteira_ativa = "Geral" if str(carteira_ativa).lower() == "geral" else str(carteira_ativa).strip().zfill(2)
 
-# CORRIGIDO AQUI: width="stretch"
 st.sidebar.button("🚪 Encerrar Sessão", width="stretch", on_click=lambda: st.session_state.clear() or st.rerun())
 st.sidebar.divider()
 
@@ -204,19 +207,30 @@ g4.metric("🟢 Total Cobrável", f"R$ {v_cobravel:,.2f}", calc_delta(v_cobravel
 g5.metric("🔴 Total Incobrável", f"R$ {v_incobravel:,.2f}", calc_delta(v_incobravel, v_incobravel_ant), delta_color="inverse")
 st.divider()
 
+# -------------------------------------------------------------------------
+# 1. GRÁFICO DE CLIENTES (COM BARRA DE ROLAGEM)
+# -------------------------------------------------------------------------
 if 'N Fantasia' in df_atual.columns and not df_atual.empty:
     st.markdown("### 🏢 Concentração de Inadimplência por Clientes")
     with st.container(height=600, border=True):
         df_g1 = df_atual.groupby('N Fantasia')[coluna_valor].sum().reset_index().sort_values(coluna_valor)
+        
+        # O SEGREDO DO SCROLL: Cálculo matemático da altura (35 pixels por cada cliente)
+        altura_interna_g1 = max(550, len(df_g1) * 35)
+        
         fig1 = px.bar(df_g1, x=coluna_valor, y='N Fantasia', orientation='h', template="plotly_dark", 
+                      height=altura_interna_g1, # Altura dinâmica para gerar scroll vertical
                       color_discrete_sequence=['#4CAF50'], text=coluna_valor)
+        
         fig1.update_traces(texttemplate='R$ %{text:,.2f}', textposition='auto', textfont=dict(color='white', size=11))
         fig1.update_layout(xaxis_showticklabels=False, xaxis_title=None, yaxis_title=None, margin=dict(l=220, r=40, t=10, b=10))
-        # CORRIGIDO AQUI: width="stretch"
         st.plotly_chart(fig1, width="stretch")
 
 st.divider()
 
+# -------------------------------------------------------------------------
+# 2. GRÁFICOS DE ROSCA (GRUPO E ACOMPANHAMENTO)
+# -------------------------------------------------------------------------
 col_p1, col_p2 = st.columns(2)
 with col_p1:
     st.markdown("#### 📌 Distribuição por Grupo Atendimento")
@@ -227,7 +241,6 @@ with col_p1:
                           color_discrete_sequence=['#17a2b8', '#4CAF50', '#20c997', '#0e76a8'])
             fig2.update_traces(textinfo='percent', textfont=dict(size=12, color='white'))
             fig2.update_layout(legend=dict(orientation="h", y=-0.1, xanchor="center", x=0.5))
-            # CORRIGIDO AQUI: width="stretch"
             st.plotly_chart(fig2, width="stretch")
 
 with col_p2:
@@ -239,20 +252,106 @@ with col_p2:
                           color_discrete_sequence=['#0e76a8', '#17a2b8', '#4CAF50', '#20c997'])
             fig3.update_traces(textinfo='percent', textfont=dict(size=12, color='white'))
             fig3.update_layout(legend=dict(orientation="h", y=-0.1, xanchor="center", x=0.5))
-            # CORRIGIDO AQUI: width="stretch"
             st.plotly_chart(fig3, width="stretch")
 
 st.divider()
+
+# -------------------------------------------------------------------------
+# 3. GRÁFICOS DE MÊS E STATUS 
+# -------------------------------------------------------------------------
+col_baixo1, col_baixo2 = st.columns(2)
+
+with col_baixo1:
+    st.markdown("#### 🗓️ Valor Vencido por Mês (TOTAL)")
+    with st.container(height=450, border=True):
+        if 'Mes_Grafico' in df_atual.columns:
+            try:
+                df_g4 = df_atual.groupby('Mes_Grafico')[coluna_valor].sum().reset_index()
+                df_g4 = df_g4.sort_values(by='Mes_Grafico', ascending=True)
+                df_g4['Mes_Exibicao'] = df_g4['Mes_Grafico'].apply(lambda x: f"{x[-2:]}/{x[:4]}" if x != 'Sem Data' else x)
+                
+                altura_interna_g4 = max(400, len(df_g4) * 35)
+                
+                fig4 = px.bar(
+                    df_g4, x=coluna_valor, y='Mes_Exibicao', orientation='h', 
+                    template="plotly_dark", height=altura_interna_g4, text=coluna_valor,
+                    color_discrete_sequence=['#4CAF50']
+                )
+                fig4.update_yaxes(type='category', title=None, categoryorder='array', categoryarray=df_g4['Mes_Exibicao'])
+                fig4.update_xaxes(showticklabels=False, title=None, showgrid=False)
+                fig4.update_traces(texttemplate='R$ %{text:,.2f}', textposition='auto', cliponaxis=False, textfont=dict(color='white', size=11))
+                fig4.update_layout(margin=dict(l=100, r=40, t=10, b=10))
+                st.plotly_chart(fig4, width="stretch")
+            except: pass
+
+with col_baixo2:
+    st.markdown("#### 🚦 Valor por Status de Atendimento")
+    with st.container(height=450, border=True):
+        if coluna_status in df_atual.columns:
+            df_graficos_status = df_atual.copy()
+            df_graficos_status[coluna_status] = pd.to_numeric(df_graficos_status[coluna_status], errors='coerce').fillna(0).astype(int).astype(str)
+            df_g5 = df_graficos_status.groupby(coluna_status)[coluna_valor].sum().reset_index()
+            df_g5 = df_g5.sort_values(by=coluna_valor, ascending=True)
+            
+            altura_interna_g5 = max(400, len(df_g5) * 35)
+            
+            fig5 = px.bar(
+                df_g5, x=coluna_valor, y=coluna_status, orientation='h', 
+                template="plotly_dark", height=altura_interna_g5, text=coluna_valor,
+                color_discrete_sequence=['#4CAF50']
+            )
+            fig5.update_yaxes(type='category', title=None)
+            fig5.update_xaxes(showticklabels=False, title=None, showgrid=False)
+            fig5.update_traces(texttemplate='R$ %{text:,.2f}', textposition='auto', cliponaxis=False, textfont=dict(color='white', size=11))
+            fig5.update_layout(coloraxis_showscale=False, margin=dict(l=100, r=40, t=10, b=10)) 
+            st.plotly_chart(fig5, width="stretch")
+
+st.divider()
+
+# -------------------------------------------------------------------------
+# 4. GRÁFICO DE HISTÓRICO: MÉDIA MENSAL DA INADIMPLÊNCIA GERAL
+# -------------------------------------------------------------------------
+st.markdown("#### 📈 Histórico: Média Mensal da Inadimplência Geral")
+with st.container(height=450, border=True):
+    if 'Data_Analise_dt' in df_filtrado.columns and not df_filtrado['Data_Analise_dt'].isna().all():
+        try:
+            df_historico = df_filtrado.copy()
+            df_historico['Dia_Relatorio'] = df_historico['Data_Analise_dt'].dt.date
+            df_totais_diarios = df_historico.groupby('Dia_Relatorio')[coluna_valor].sum().reset_index()
+            
+            df_totais_diarios['Dia_Relatorio'] = pd.to_datetime(df_totais_diarios['Dia_Relatorio'])
+            df_totais_diarios['Mes_Relatorio'] = df_totais_diarios['Dia_Relatorio'].dt.strftime('%Y-%m')
+            
+            df_media_mensal = df_totais_diarios.groupby('Mes_Relatorio')[coluna_valor].mean().reset_index()
+            df_media_mensal = df_media_mensal.sort_values(by='Mes_Relatorio', ascending=True)
+            
+            df_media_mensal['Mes_Exibicao'] = df_media_mensal['Mes_Relatorio'].apply(lambda x: f"{x[-2:]}/{x[:4]}")
+            
+            fig_media_geral = px.bar(
+                df_media_mensal, x='Mes_Exibicao', y=coluna_valor, orientation='v', 
+                template="plotly_dark", height=400, text=coluna_valor,
+                color_discrete_sequence=['#17a2b8']
+            )
+            
+            fig_media_geral.update_xaxes(type='category', title=None, categoryorder='array', categoryarray=df_media_mensal['Mes_Exibicao'])
+            fig_media_geral.update_yaxes(showticklabels=False, title=None, showgrid=False)
+            fig_media_geral.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, textfont=dict(color='white', size=11))
+            fig_media_geral.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+            
+            st.plotly_chart(fig_media_geral, width="stretch")
+        except Exception as e: 
+            pass
+
+st.markdown("<br><br>", unsafe_allow_html=True) 
 
 # =============================================================================
 # EXPORTAÇÃO E BI (Integração Openpyxl / Power BI)
 # =============================================================================
 with st.expander("🗃️ Ver Base de Dados Detalhada e Exportar para Excel"):
-    st.markdown("Base higienizada pronta para modelagem star-schema em ferramentas de BI (Power BI/Looker).")
+    st.markdown("Base higienizada pronta para exportação e modelagem.")
     col_exibir = ['No. Titulo', 'Tipo', 'CNPJ/CPF', 'Valor', 'N Fantasia', 'DT Emissao', 'Vencto real', 'Carteira', 'COBRANÇA', 'Status Atend', 'Grupo Atendimento', 'Range_Acompanhamento']
     col_validas = [c for c in col_exibir if c in df_atual.columns]
     
-    # CORRIGIDO AQUI: width="stretch"
     st.dataframe(df_atual[col_validas], width="stretch", hide_index=True)
 
     try:
@@ -265,7 +364,8 @@ with st.expander("🗃️ Ver Base de Dados Detalhada e Exportar para Excel"):
             data=buffer.getvalue(),
             file_name=f"Relatorio_Base_{carteira_ativa}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary"
+            type="primary",
+            width="stretch"
         )
     except Exception:
         st.error("⚠️ Inclua 'openpyxl' no requirements.txt para habilitar o download.")
