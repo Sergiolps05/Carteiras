@@ -154,6 +154,8 @@ sel_mes = st.sidebar.multiselect("7. MÊS VENCIMENTO:", options=opcoes_mes, plac
 opcoes_dia = sorted([str(x) for x in df_carteira_crua['Data_Exata'].unique()])
 sel_dia = st.sidebar.multiselect("8. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
 
+sel_prefixo = criar_filtro('Prefixo', "9. PREFIXO:")
+
 # -------------------------------------------------------------------------
 # APLICAÇÃO DE FILTROS E CONSTRUÇÃO DE DELTAS
 # -------------------------------------------------------------------------
@@ -167,7 +169,8 @@ if sel_grupo:    df_filtrado = df_filtrado[df_filtrado['Grupo Atendimento'].asty
 if sel_range:    df_filtrado = df_filtrado[df_filtrado['Range_Acompanhamento'].astype(str).isin(sel_range)]
 if sel_mes:      df_filtrado = df_filtrado[df_filtrado['Mes_Filtro'].astype(str).isin(sel_mes)]
 if sel_dia:      df_filtrado = df_filtrado[df_filtrado['Data_Exata'].astype(str).isin(sel_dia)]
-
+if sel_prefixo:  df_filtrado = df_filtrado[df_filtrado['Prefixo'].astype(str).isin(sel_prefixo)]
+    
 df_atual = df_filtrado[df_filtrado['Data_Analise_dt'] == sel_data_relatorio_dt].copy() if sel_data_relatorio_dt else df_filtrado.copy()
 df_anterior = pd.DataFrame(columns=df_filtrado.columns)
 
