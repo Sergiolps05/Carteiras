@@ -47,7 +47,7 @@ URL_SHEETS = st.secrets["URL_PLANILHA"]
 def carregar_dados_sheets(url: str) -> pd.DataFrame:
     try:
         # CORREÇÃO CRÍTICA APLICADA AQUI (low_memory=False)
-        df = pd.read_csv(url, dtype={'Carteira': str}, low_memory=False)
+        df = pd.read_csv(url, dtype={'Carteira': str, 'Parcela': str}, low_memory=False)
         df.columns = df.columns.str.strip() 
         if 'Carteira' in df.columns:
             df['Carteira'] = df['Carteira'].astype(str).str.strip().str.zfill(2)
