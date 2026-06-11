@@ -132,38 +132,47 @@ if coluna_vencimento in df_carteira_crua.columns:
     df_carteira_crua['Mes_Grafico'] = datas_venc.dt.strftime('%Y-%m').fillna('Sem Data')
 else:
     df_carteira_crua['Mes_Filtro'] = df_carteira_crua['Data_Exata'] = df_carteira_crua['Mes_Grafico'] = 'Sem Data'
-
 # -------------------------------------------------------------------------
-# FILTROS LATERAIS INTERATIVOS
+# FILTROS LATERAIS INTERATIVOS (CASCATA DINÂMICA)
 # -------------------------------------------------------------------------
 st.sidebar.markdown("###  Dia do relatório")
 sel_data_relatorio_str = st.sidebar.selectbox("Data do Relatório:", options=opcoes_data_relatorio) if opcoes_data_relatorio else "Sem Data"
 sel_data_relatorio_dt = pd.to_datetime(sel_data_relatorio_str, format='%d/%m/%Y') if sel_data_relatorio_str != "Sem Data" else None
 
 st.sidebar.divider()
-st.sidebar.markdown("###  Filtros")
+st.sidebar.markdown("### 🔍 Filtros Dinâmicos")
 
-def criar_filtro(coluna, label):
-    if coluna in df_carteira_crua.columns:
-        opcoes = sorted([str(x) for x in df_carteira_crua[coluna].dropna().unique()])
-        return st.sidebar.multiselect(label, options=opcoes, placeholder="Todos")
-    return []
+# Função inteligente que lê as opções disponíveis e já devolve a base cortada
+def filtro_dinamico(df, coluna, label):
+    if coluna in df.columns:
+        # Lê apenas as opções que AINDA existem no DataFrame
+        opcoes = sorted([str(x) for x in df[coluna].dropna().unique()])
+        selecao = st.sidebar.multiselect(label, options=opcoes, placeholder="Todos")
+        if selecao:
+            # Se o usuário escolheu algo, corta o DataFrame
+            return df[df[coluna].astype(str).isin(selecao)]
+    return df
 
-sel_carteira = criar_filtro('Carteira', " CARTEIRA:") if carteira_ativa == "Geral" else []
-sel_cobranca = criar_filtro('COBRANÇA', "1. COBRANÇA:")
-sel_cliente = criar_filtro('N Fantasia', "2. CLIENTE:")
-sel_cnpj = criar_filtro('CNPJ/CPF', "3. CNPJ/CPF:")
-sel_status = criar_filtro('Status Atend', "4. STATUS ATEND:")
-sel_grupo = criar_filtro('Grupo Atendimento', "5. GRUPO ATEND:")
-sel_range = criar_filtro('Range_Acompanhamento', "6. RANGE ACOMPANHAMENTO:")
+# Inicia o funil com a base inteira da carteira do usuário
+df_filtrado = df_carteira_crua.copy()
 
-opcoes_mes = sorted([str(x) for x in df_carteira_crua['Mes_Filtro'].unique()])
-sel_mes = st.sidebar.multiselect("7. MÊS VENCIMENTO:", options=opcoes_mes, placeholder="Todos")
+# APLICAÇÃO DO FUNIL DE CIMA PARA BAIXO
+if carteira_ativa == "Geral":
+    df_filtrado = filtro_dinamico(df_filtrado, 'Carteira', "⭐ CARTEIRA:")
 
-opcoes_dia = sorted([str(x) for x in df_carteira_crua['Data_Exata'].unique()])
-sel_dia = st.sidebar.multiselect("8. DIA VENCIMENTO:", options=opcoes_dia, placeholder="Todos")
+df_filtrado = filtro_dinamico(df_filtrado, 'COBRANÇA', "1. COBRANÇA:")
+df_filtrado = filtro_dinamico(df_filtrado, 'N Fantasia', "2. CLIENTE:")
+df_filtrado = filtro_dinamico(df_filtrado, 'CNPJ/CPF', "3. CNPJ/CPF:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Status Atend', "4. STATUS ATEND:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Grupo Atendimento', "5. GRUPO ATEND:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Range_Acompanhamento', "6. RANGE ACOMPANHAMENTO:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Mes_Filtro', "7. MÊS VENCIMENTO:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Data_Exata', "8. DIA VENCIMENTO:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Prefixo', "9. PREFIXO:")
 
-sel_prefixo = criar_filtro('Prefixo', "9. PREFIXO:")
+# -------------------------------------------------------------------------
+# CONSTRUÇÃO DE DELTAS
+# -------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------
 # APLICAÇÃO DE FILTROS E CONSTRUÇÃO DE DELTAS
