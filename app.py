@@ -95,6 +95,10 @@ if not st.session_state["autenticado"]:
 carteira_ativa = st.session_state["carteira_ativa"]
 carteira_ativa = "Geral" if str(carteira_ativa).lower() == "geral" else str(carteira_ativa).strip().zfill(2)
 
+#Logo
+st.sidebar.image("images.png", use_container_width=True)
+st.sidebar.markdown("<br>", unsafe_allow_html=True) 
+
 st.sidebar.button("🚪 Encerrar Sessão", width="stretch", on_click=lambda: st.session_state.clear() or st.rerun())
 st.sidebar.divider()
 
