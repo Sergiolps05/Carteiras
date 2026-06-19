@@ -51,7 +51,7 @@ except Exception as e:
 # =============================================================================
 # 2. ENGENHARIA DE DADOS (Pandas & Cache)
 # =============================================================================
-@st.cache_data(ttl=43200)
+@st.cache_data(ttl=28800)
 def carregar_dados_sheets(url: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(url, dtype={'Carteira': str, 'Parcela': str}, low_memory=False)
