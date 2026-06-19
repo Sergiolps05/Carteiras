@@ -168,6 +168,7 @@ df_filtrado = filtro_dinamico(df_filtrado, 'Range_Acompanhamento', "6. RANGE ACO
 df_filtrado = filtro_dinamico(df_filtrado, 'Mes_Filtro', "7. MÊS VENCIMENTO:")
 df_filtrado = filtro_dinamico(df_filtrado, 'Data_Exata', "8. DIA VENCIMENTO:")
 df_filtrado = filtro_dinamico(df_filtrado, 'Prefixo', "9. PREFIXO:")
+df_filtrado = filtro_dinamico(df_filtrado, 'Tipo', "10. TIPO:")
 
 # -------------------------------------------------------------------------
 # CONSTRUÇÃO DE DELTAS E BASE ATUAL
