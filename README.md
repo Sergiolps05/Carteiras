@@ -31,3 +31,6 @@ O grande diferencial deste projeto é a integração fluida entre ambientes rest
 2. Instale as dependências:
    ```bash
    pip install streamlit pandas plotly openpyxl st-gsheets-connection
+3.Execute o dashboard no terminal:
+   Bash
+   python -m streamlit run dashboard.py
